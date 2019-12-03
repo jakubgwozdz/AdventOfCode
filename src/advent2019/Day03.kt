@@ -19,18 +19,21 @@ private fun wireToPlaces(wire: String): Set<Pair<Int, Int>> {
             (1..len).map { direction }
         }
         .also { println("${Instant.now()}: moves counted") }
-        .fold(listOf(0 to 0)) { acc, c ->
-            val last = acc.last()
-            acc + when (c) {
-                'U' -> last.first to last.second + 1
-                'R' -> last.first + 1 to last.second
-                'D' -> last.first to last.second - 1
-                'L' -> last.first - 1 to last.second
-                else -> error(c)
+        .let {
+            var acc = 0 to 0
+            it.mapIndexed {i,c->
+                acc = when (c) {
+                    'U' -> acc.first to acc.second + 1
+                    'R' -> acc.first + 1 to acc.second
+                    'D' -> acc.first to acc.second - 1
+                    'L' -> acc.first - 1 to acc.second
+                    else -> error(c)
+                }
+                acc //to i
             }
         }
-        .also { println("${Instant.now()}: places counted") }
-        .drop(1)
+        .also { println("${Instant.now()}: places counted: ${it.size}") }
+//        .distinctBy { it.first }
         .toHashSet()
         .also { println("${Instant.now()}: hashsetted :P") }
 }
