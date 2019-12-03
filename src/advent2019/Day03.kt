@@ -41,7 +41,7 @@ private fun positionsByPlaces(wire: String): Map<Place, Int> {
         .also { println("${Instant.now()}: distinct places ${it.size}") }
 }
 
-private fun placesAndPositions(moves: List<Char>): List<Pair<Pair<Int, Int>, Int>> {
+private fun placesAndPositions(moves: List<Char>): List<Pair<Place, Int>> {
     var acc = 0 to 0
     return moves.mapIndexed { i, c ->
         acc = when (c) {
