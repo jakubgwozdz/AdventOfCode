@@ -2,43 +2,61 @@ package advent2019
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.time.Instant
 import kotlin.math.absoluteValue
 
 fun main() {
     val input = Files.readAllLines(Paths.get("input-2019-03.txt"))
-    findCrossing(input.first(), input.drop(1).first())
+    part1(input.first(), input.drop(1).first())
 }
 
-fun wireToMoves(wire: String): List<Char> = wire.split(',')
-    .map { it.trim() }
-    .flatMap { part ->
-        val direction = part[0]
-        val len = part.substring(1).toInt()
-        (1..len).map { direction }
-    }
-
-fun movesToPlaces(moves: List<Char>): Set<Pair<Int, Int>> {
-    return moves.fold(listOf(0 to 0)) { acc, c ->
-        val last = acc.last()
-        acc + when (c) {
-            'U' -> last.first to last.second + 1
-            'R' -> last.first + 1 to last.second
-            'D' -> last.first to last.second - 1
-            'L' -> last.first - 1 to last.second
-            else -> error(c)
+private fun wireToPlaces(wire: String): Set<Pair<Int, Int>> {
+    return wire.split(',')
+        .map { it.trim() }
+        .flatMap { part ->
+            val direction = part[0]
+            val len = part.substring(1).toInt()
+            (1..len).map { direction }
         }
-    }.drop(1)
-        .toSet()
+        .also { println("${Instant.now()}: moves counted") }
+        .fold(listOf(0 to 0)) { acc, c ->
+            val last = acc.last()
+            acc + when (c) {
+                'U' -> last.first to last.second + 1
+                'R' -> last.first + 1 to last.second
+                'D' -> last.first to last.second - 1
+                'L' -> last.first - 1 to last.second
+                else -> error(c)
+            }
+        }
+        .also { println("${Instant.now()}: places counted") }
+        .drop(1)
+        .toHashSet()
+        .also { println("${Instant.now()}: hashsetted :P") }
 }
 
-fun findCrossing(wire1: String, wire2: String): Int {
-    val moves1 = wireToMoves(wire1).also{println(it)}
-    val moves2 = wireToMoves(wire2).also{println(it)}
-    val places1 = movesToPlaces(moves1).also{println(it)}
-    val places2 = movesToPlaces(moves2).also{println(it)}
-    val intersect = places1.intersect(places2).also{println(it)}
 
-    val distances = intersect.map { it.first.absoluteValue + it.second.absoluteValue }.also{println(it)}
-    val closest = distances.sorted().first().also{println(it)}
+fun findCrossings(wire1: String, wire2: String): Set<Pair<Int, Int>> {
+
+    val places1 = wireToPlaces(wire1)
+    val places2 = wireToPlaces(wire2)
+
+    val intersect = places1.intersect(places2).also { println("${Instant.now()}: intersections found: $it") }
+
+    return intersect
+}
+
+fun part1(wire1: String, wire2: String): Int {
+    val intersections = findCrossings(wire1, wire2)
+    val distances = intersections.map { it.first.absoluteValue + it.second.absoluteValue }.also { println("${Instant.now()}: distances $it") }
+    val closest = distances.min()!!.also { println("${Instant.now()}: $it") }
     return closest
 }
+
+//fun part2(wire1: String, wire2: String): Int {
+//    val intersections = findCrossings(wire1, wire2)
+//    val distances = intersections.map { it.first.absoluteValue + it.second.absoluteValue }.also { println(it) }
+//    val closest = distances.min()!!.also { println("${Instant.now()}: $it") }
+//    return closest
+//}
+
