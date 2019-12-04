@@ -6,13 +6,14 @@ import java.time.Instant
 import kotlin.math.absoluteValue
 
 fun main() {
-    val input = Files.readAllLines(Paths.get("input-2019-03.txt")).also {println("${Instant.now()}: data loaded")}
+    val input = Files.readAllLines(Paths.get("input-2019-03.txt")).also { println("${Instant.now()}: data loaded") }
     val first = input.first()
     val second = input.drop(1).first()
     calculate(first, second, ::metric2)
 }
 
 typealias Place = Pair<Int, Int>
+
 data class Crossing(val place: Place, val wire1Distance: Int, val wire2Distance: Int)
 
 fun metric1(crossing: Crossing): Int {
@@ -42,7 +43,7 @@ private fun positionsByPlaces(wire: String): Map<Place, Int> {
 }
 
 private fun placesAndPositions(moves: List<Char>): List<Pair<Place, Int>> {
-    var acc = 0 to 0
+    var acc: Place = 0 to 0
     return moves.mapIndexed { i, c ->
         acc = when (c) {
             'U' -> acc.first to acc.second + 1
@@ -68,7 +69,7 @@ fun findCrossings(wire1: String, wire2: String): Collection<Crossing> {
     }
 }
 
-fun calculate(wire1: String, wire2: String, metric: (Crossing)->Int): Int {
+fun calculate(wire1: String, wire2: String, metric: (Crossing) -> Int): Int {
     val intersections = findCrossings(wire1, wire2)
     val distances = intersections.map { metric(it) }.also { println("${Instant.now()}: distances $it") }
     val closest = distances.min()!!.also { println("${Instant.now()}: result $it") }
