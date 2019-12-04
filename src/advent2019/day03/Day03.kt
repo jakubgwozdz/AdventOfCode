@@ -1,4 +1,4 @@
-package advent2019
+package advent2019.day03
 
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -6,7 +6,8 @@ import java.time.Instant
 import kotlin.math.absoluteValue
 
 fun main() {
-    val input = Files.readAllLines(Paths.get("input-2019-03.txt")).also { println("${Instant.now()}: data loaded") }
+    val input = Files.readAllLines(Paths.get("input-2019-03.txt"))
+        .also { println("${Instant.now()}: data loaded") }
     val first = input.first()
     val second = input.drop(1).first()
     calculate(first, second, ::metric2)
@@ -62,7 +63,8 @@ fun findCrossings(wire1: String, wire2: String): Collection<Crossing> {
     val places1 = positionsByPlaces(wire1)
     val places2 = positionsByPlaces(wire2)
 
-    val intersect = places1.keys.intersect(places2.keys).also { println("${Instant.now()}: intersections found: $it") }
+    val intersect = places1.keys.intersect(places2.keys)
+        .also { println("${Instant.now()}: intersections found: $it") }
 
     return intersect.map {
         Crossing(it, places1[it]!!, places2[it]!!)
@@ -71,7 +73,8 @@ fun findCrossings(wire1: String, wire2: String): Collection<Crossing> {
 
 fun calculate(wire1: String, wire2: String, metric: (Crossing) -> Int): Int {
     val intersections = findCrossings(wire1, wire2)
-    val distances = intersections.map { metric(it) }.also { println("${Instant.now()}: distances $it") }
+    val distances =
+        intersections.map { metric(it) }.also { println("${Instant.now()}: distances $it") }
     val closest = distances.min()!!.also { println("${Instant.now()}: result $it") }
     return closest
 }

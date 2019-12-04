@@ -1,4 +1,4 @@
-package advent2019
+package advent2019.day02
 
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -13,7 +13,7 @@ fun main() {
     (0..99).forEach { noun ->
         (0..99).forEach { verb ->
             val result2 = run(noun, verb)
-            if (noun == 12 && verb == 2) println("${100 * noun + verb}: ${result2[0]}")
+//            if (noun == 12 && verb == 2) println("${100 * noun + verb}: ${result2[0]}")
             if (result2[0] == 19690720) println("${100 * noun + verb}: ${result2[0]}")
         }
 

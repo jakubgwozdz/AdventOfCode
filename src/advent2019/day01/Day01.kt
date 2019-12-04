@@ -1,4 +1,4 @@
-package advent2019
+package advent2019.day01
 
 import java.nio.file.Files
 import java.nio.file.Paths

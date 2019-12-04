@@ -1,18 +1,16 @@
-package advent2019
+package advent2019.day04
 
-import java.time.LocalTime.now
-
-fun log(msg: String) {
-    println("${now()}: $msg")
-}
+import advent2019.log
 
 fun main() {
-    countPossible("254032-789860").also { log("${it.size}") }
+    countPossible("254032-789860")
+        .also { log("${it.size}") }
 }
 
 fun countPossible(range: String): Collection<Int> {
-    val (from, to) = Regex("(\\d+)-(\\d+)").matchEntire(range)?.destructured ?: error("can't parse $range")
-    log ( "from: $from, to: $to" )
+    val (from, to) = Regex("(\\d+)-(\\d+)").matchEntire(range)?.destructured
+        ?: error("can't parse $range")
+    log("from: $from, to: $to")
     return (from.toInt()..to.toInt())
         .filter { number ->
             isValid(number)
