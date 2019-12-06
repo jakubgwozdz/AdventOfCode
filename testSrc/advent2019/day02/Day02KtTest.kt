@@ -16,26 +16,10 @@ internal class Day02KtTest {
     @Test
     fun samples() {
         assertAll(
-            { assertEquals(3500,
-                parse("1,9,10,3,2,3,11,0,99,30,40,50").also {
-                    process(it)
-                }[0]) },
-            { assertEquals(2,
-                parse("1,0,0,0,99").also {
-                    process(
-                        it
-                    )
-                }[0]) },
-            { assertEquals(2,
-                parse("2,3,0,3,99").also {
-                    process(
-                        it
-                    )
-                }[0]) },
-            { assertEquals(30,
-                parse("1,1,1,4,99,5,6,0,99").also {
-                    process(it)
-                }[0]) }
+            { assertEquals(3500, parse("1,9,10,3,2,3,11,0,99,30,40,50").also { process(it) }[0]) },
+            { assertEquals(2, parse("1,0,0,0,99").also { process(it) }[0]) },
+            { assertEquals(2, parse("2,3,0,3,99").also { process(it) }[0]) },
+            { assertEquals(30, parse("1,1,1,4,99,5,6,0,99").also { process(it) }[0]) }
         )
     }
 

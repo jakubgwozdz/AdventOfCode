@@ -3,8 +3,7 @@ package advent2019.day04
 import advent2019.log
 
 fun main() {
-    countPossible("254032-789860")
-        .also { log("${it.size}") }
+    countPossible("254032-789860").also { log("${it.size}") }
 }
 
 fun countPossible(range: String): Collection<Int> {
