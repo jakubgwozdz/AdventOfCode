@@ -11,12 +11,9 @@ fun main() {
         .map { it.destructured.component2() to it.destructured.component1() }
         .toMap()
     log("read ${orbits.size} orbits")
-    val acc = mutableMapOf<String, Int>()
-    orbits.keys.forEach { s: String ->
-        countRelations(s, acc, orbits)
-    }
-    log("calculated ${acc.size} indirections")
-    val count = acc.values.sum()
+    val distances = orbits.mapValues { (s: String, _) -> countRelations(s, orbits) }
+    log("calculated ${distances.size} indirections")
+    val count = distances.values.sum()
     log("result is $count")
 
     var youOrbit = orbits["YOU"]!!
@@ -25,27 +22,31 @@ fun main() {
 
     while (youOrbit != sanOrbit) {
         jumps += 1
-        if (acc[youOrbit]!! > acc[sanOrbit]!!) {
+        if (distances[youOrbit]!! > distances[sanOrbit]!!) {
             val newOrbit = orbits[youOrbit]!!
             log("$jumps: YOU from $youOrbit to $newOrbit")
             youOrbit = newOrbit
         } else {
             val newOrbit = orbits[sanOrbit]!!
-            log("$jumps: SAN from $youOrbit to $newOrbit")
+            log("$jumps: SAN from $sanOrbit to $newOrbit")
             sanOrbit = newOrbit
         }
     }
-
 }
 
 
-fun countRelations(s: String, acc: MutableMap<String, Int>, orbits: Map<String, String>) {
-    assert(acc[s] == null)
-    val parent = orbits[s]
-    if (parent == null) {
-        acc[s] = 0 // center
-    } else {
-        if (acc[parent] == null) countRelations(parent, acc, orbits)
-        acc[s] = acc[parent]!! + 1
-    }
+fun countRelations(
+    satellite: String,
+    orbits: Map<String, String>,
+    cache: MutableMap<String, Int> = mutableMapOf()
+): Int {
+    return cache[satellite] ?: calculate(satellite, orbits, cache).also { cache[satellite] = it }
 }
+
+private fun calculate(
+    satellite: String,
+    orbits: Map<String, String>,
+    cache: MutableMap<String, Int>
+) = orbits[satellite]?.let { parent ->
+    1 + (cache[parent] ?: countRelations(parent, orbits, cache))
+} ?: 0
