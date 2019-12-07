@@ -2,15 +2,16 @@ package advent2019.day07
 
 import advent2019.log
 import advent2019.permutations
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.LinkedBlockingQueue
-import kotlin.concurrent.thread
 
 fun main() {
 
     val programStr = Files.readString(Paths.get("input-2019-07.txt"))
+        .also { log("Program length (chars): ${it.length}") }
 
     // part 1
     val permutations = permutations(5)
@@ -29,38 +30,30 @@ fun main() {
 
 fun run(programStr: String, input: List<Int>): Int {
     var output = 0
-//    log("permutation is $input")
     input.forEachIndexed { index, ampl ->
         val program = parse(programStr)
-        val inputBuffer = Buffer<Int>('A'+index)
-        val outputBuffer = Buffer<Int>('a'+index)
-        val iter = listOf(ampl, output).iterator()
-        val computer = Computer('A'+index, program, inputBuffer, outputBuffer)
-        inputBuffer.apply {
-            put(ampl)
-            put(output)
+        val inputBuffer = Buffer<Int>('A' + index)
+        val outputBuffer = Buffer<Int>('a' + index)
+        val computer = Computer('A' + index, program, inputBuffer, outputBuffer)
+        output = runBlocking {
+            launch { computer.run() }
+            inputBuffer.apply {
+                put(ampl)
+                put(output)
+            }
+            outputBuffer.take()
         }
-        computer.run()
-        output = outputBuffer.take()
     }
-    return output//.also { log("result is $it") }
+    return output
 }
 
 class Buffer<T>(val id: Any) {
-    private val queue: BlockingQueue<T> = LinkedBlockingQueue()
-    fun put(e: T) {
-        log("queue $id put  <- $e")
-        queue.put(e)
-    }
-
-    fun take(): T {
-        log("queue $id will take...")
-        return queue.take().also { log("queue $id take -> $it") }
-    }
+    private val queue = Channel<T>(Channel.UNLIMITED)
+    suspend fun put(e: T) = queue.send(e)
+    suspend fun take(): T = queue.receive()
 }
 
 fun run2(programStr: String, input: List<Int>): Int {
-    log("permutation is $input")
 
     val buffers = input.indices
         .map { 'A' + it }
@@ -77,23 +70,23 @@ fun run2(programStr: String, input: List<Int>): Int {
             )
         }
 
-    val threads = computers.map {
-        thread(true) {
-            it.run()
+    runBlocking {
+        computers.map {
+            launch {
+                it.run()
+            }
         }
+
+        buffers.forEachIndexed { index, buffer ->
+            buffer.put(input[index])
+        }
+
+        buffers[0].put(0)
     }
 
-    buffers.forEachIndexed { index, buffer ->
-        buffer.put(input[index])
+    return runBlocking {
+        buffers[0].take()
     }
-
-    buffers[0].put(0)
-
-    threads.forEach { it.join() }
-
-    val output = buffers[0].take()
-
-    return output//.also { log("result is $it") }
 }
 
 class Computer(
@@ -104,8 +97,8 @@ class Computer(
 ) {
     var ip: Int = 0
 
-    fun read(): Int = inputBuffer.take()
-    fun write(v: Int) = outputBuffer.put(v)
+    suspend fun read(): Int = inputBuffer.take()
+    suspend fun write(v: Int) = outputBuffer.put(v)
 
     val opcode get() = memory[ip]
 
@@ -127,9 +120,9 @@ class Computer(
     private val fourthParam get() = nthParam(4)
 
     // main loop
-    fun run() {
+    suspend fun run() {
         while (true) {
-            log("computer $id opcode $opcode at addr $ip")
+//            log("computer $id opcode $opcode at addr $ip")
             when (opcode % 100) {
                 1 -> op1()
                 2 -> op2()
@@ -157,12 +150,12 @@ class Computer(
         ip += 4
     }
 
-    private fun op3() {
+    private suspend fun op3() {
         memory[firstParam] = read()
         ip += 2
     }
 
-    private fun op4() {
+    private suspend fun op4() {
         write(memory[firstParam])
         ip += 2
     }
