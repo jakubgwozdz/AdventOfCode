@@ -9,11 +9,12 @@ fun main() {
     val file = "input-2019-08.txt"
 
     val layers = readFile(file).first()
-        .chunked(width * height)
-        .map { it.toList().toList() }
-    val minLayer = layers.minBy { l -> l.count { it == '0' } }!!
-    val result = minLayer.count { it == '1' } * minLayer.count { it == '2' }
-    logWithTime("part1 is $result")
+        .chunked(width * height) { it.toList() }
+
+    layers
+        .minBy { l -> l.count { it == '0' } }!!
+        .run { count { it == '1' } * count { it == '2' } }
+        .let { logWithTime("part1 is $it") }
 
     layers
         .reduce { a, b -> a.indices.map { i -> if (a[i] != '2') a[i] else b[i] } }
