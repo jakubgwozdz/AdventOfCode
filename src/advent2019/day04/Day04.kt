@@ -1,20 +1,20 @@
 package advent2019.day04
 
-import advent2019.log
+import advent2019.logWithTime
 
 fun main() {
-    countPossible("254032-789860").also { log("${it.size}") }
+    countPossible("254032-789860").also { logWithTime("${it.size}") }
 }
 
 fun countPossible(range: String): Collection<Int> {
     val (from, to) = Regex("(\\d+)-(\\d+)").matchEntire(range)?.destructured
         ?: error("can't parse $range")
-    log("from: $from, to: $to")
+    logWithTime("from: $from, to: $to")
     return (from.toInt()..to.toInt())
         .filter { number ->
             isValid(number)
         }
-        .also { log("$it") }
+        .also { logWithTime("$it") }
 }
 
 private fun isValid(number: Int): Boolean {

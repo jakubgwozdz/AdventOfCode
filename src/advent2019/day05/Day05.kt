@@ -1,20 +1,19 @@
 package advent2019.day05
 
-import advent2019.log
-import java.nio.file.Files
-import java.nio.file.Paths
+import advent2019.logWithTime
+import advent2019.readFile
 
 fun main() {
 
-    val programStr = Files.readString(Paths.get("input-2019-05.txt"))
+    val programStr = readFile("input-2019-05.txt").first()
 
     // part 1
     val output1 = run(programStr, listOf(1))
-    log(output1.toString())
+    logWithTime(output1.toString())
 
     // part 2
     val output5 = run(programStr, listOf(5))
-    log(output5.toString())
+    logWithTime(output5.toString())
 
 }
 
@@ -134,5 +133,5 @@ fun parse(input: String): IntArray {
         .split(",")
         .map { it.trim().toInt() }
         .toIntArray()
-        .also { log("loaded ${it.size} cells") }
+        .also { logWithTime("loaded ${it.size} cells") }
 }

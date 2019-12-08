@@ -1,20 +1,19 @@
 package advent2019.day06
 
-import advent2019.log
-import java.nio.file.Files
-import java.nio.file.Paths
+import advent2019.logWithTime
+import advent2019.readFile
 
 fun main() {
     val regex = Regex("(\\w+)\\)(\\w+)")
-    val orbits = Files.readAllLines(Paths.get("input-2019-06.txt"))
+    val orbits = readFile("input-2019-06.txt")
         .map { regex.matchEntire(it) ?: error("syntax at $it") }
         .map { it.destructured.component2() to it.destructured.component1() }
         .toMap()
-    log("read ${orbits.size} orbits")
+    logWithTime("read ${orbits.size} orbits")
     val distances = orbits.mapValues { (s: String, _) -> countRelations(s, orbits) }
-    log("calculated ${distances.size} indirections")
+    logWithTime("calculated ${distances.size} indirections")
     val count = distances.values.sum()
-    log("result is $count")
+    logWithTime("result is $count")
 
     var youOrbit = orbits["YOU"]!!
     var sanOrbit = orbits["SAN"]!!
@@ -24,11 +23,11 @@ fun main() {
         jumps += 1
         if (distances[youOrbit]!! > distances[sanOrbit]!!) {
             val newOrbit = orbits[youOrbit]!!
-            log("$jumps: YOU from $youOrbit to $newOrbit")
+            logWithTime("$jumps: YOU from $youOrbit to $newOrbit")
             youOrbit = newOrbit
         } else {
             val newOrbit = orbits[sanOrbit]!!
-            log("$jumps: SAN from $sanOrbit to $newOrbit")
+            logWithTime("$jumps: SAN from $sanOrbit to $newOrbit")
             sanOrbit = newOrbit
         }
     }

@@ -1,17 +1,16 @@
 package advent2019.day07
 
-import advent2019.log
+import advent2019.logWithTime
 import advent2019.permutations
+import advent2019.readFile
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.nio.file.Files
-import java.nio.file.Paths
 
 fun main() {
 
-    val programStr = Files.readString(Paths.get("input-2019-07.txt"))
-        .also { log("Program length (chars): ${it.length}") }
+    val programStr = readFile("input-2019-07.txt").first()
+        .also { logWithTime("Program length (chars): ${it.length}") }
 
     // part 1
     val permutations = permutations(5)
@@ -19,13 +18,13 @@ fun main() {
     permutations
         .map { it to run(programStr, it) }
         .maxBy { it.second }
-        .also { log("task1: $it") }
+        .also { logWithTime("task1: $it") }
 
     permutations
         .map { it.map { i -> i + 5 } }
         .map { it to run2(programStr, it) }
         .maxBy { it.second }
-        .also { log("task2: $it") }
+        .also { logWithTime("task2: $it") }
 }
 
 fun run(programStr: String, input: List<Int>): Int {
