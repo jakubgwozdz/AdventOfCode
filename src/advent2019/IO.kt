@@ -12,5 +12,5 @@ fun logWithTime(msg: List<Char>, op: String.()->String = {this}) {
     logWithTime(msg.joinToString(""), op)
 }
 
-fun readFile(fileName: String) = Files.readAllLines(Paths.get(fileName))
+fun readAllLines(fileName: String) = Files.readAllLines(Paths.get(fileName))
     .map { it.trim() }

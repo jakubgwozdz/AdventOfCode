@@ -1,11 +1,11 @@
 package advent2019.day06
 
 import advent2019.logWithTime
-import advent2019.readFile
+import advent2019.readAllLines
 
 fun main() {
     val regex = Regex("(\\w+)\\)(\\w+)")
-    val orbits = readFile("input-2019-06.txt")
+    val orbits = readAllLines("input-2019-06.txt")
         .map { regex.matchEntire(it) ?: error("syntax at $it") }
         .map { it.destructured.component2() to it.destructured.component1() }
         .toMap()

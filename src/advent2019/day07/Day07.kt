@@ -2,14 +2,14 @@ package advent2019.day07
 
 import advent2019.logWithTime
 import advent2019.permutations
-import advent2019.readFile
+import advent2019.readAllLines
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 fun main() {
 
-    val programStr = readFile("input-2019-07.txt").first()
+    val programStr = readAllLines("input-2019-07.txt").first()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
     // part 1
