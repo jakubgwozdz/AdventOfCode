@@ -13,7 +13,7 @@ fun main() {
 
     layers
         .minBy { l -> l.count { it == '0' } }!!
-        .run { count { it == '1' } * count { it == '2' } }
+        .let { l -> l.count { it == '1' } * l.count { it == '2' } }
         .let { logWithTime("part1 is $it") }
 
     layers
