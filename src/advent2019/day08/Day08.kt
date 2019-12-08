@@ -8,7 +8,7 @@ fun main() {
     val height = 6
     val file = "input-2019-08.txt"
 
-    val layers = readAllLines(file).first()
+    val layers = readAllLines(file).single()
         .chunked(width * height) { it.toList() }
 
     layers
