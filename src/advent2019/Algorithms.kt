@@ -1,5 +1,7 @@
 package advent2019
 
+import kotlin.math.absoluteValue
+
 fun permutations(n: Int): List<List<Int>> {
     val a: IntArray = (0 until n).toList().toIntArray()
     val result = mutableListOf<List<Int>>()
@@ -26,4 +28,11 @@ fun IntArray.swap(i: Int, j: Int) {
     val v = this[i]
     this[i] = this[j]
     this[j] = v
+}
+
+tailrec fun gcd(a: Int, b:Int): Int{
+    return when (a) {
+        0 -> b.absoluteValue
+        else -> gcd(b.absoluteValue % a.absoluteValue, a.absoluteValue)
+    }
 }
