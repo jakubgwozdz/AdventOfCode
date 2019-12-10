@@ -11,6 +11,7 @@ class Memory(initial: Map<BigInteger, BigInteger>) {
     operator fun set(addr: BigInteger, value: BigInteger) {
         map[addr] = value
     }
+    val size:BigInteger get() = map.keys.max()?:ZERO
 }
 
 fun opcode(operation: BigInteger): Int = operation % 100
