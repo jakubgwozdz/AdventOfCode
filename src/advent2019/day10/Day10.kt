@@ -58,13 +58,13 @@ fun Location.canSee(that: Location, asteroids: Collection<Location>): Boolean {
         .none { it.blocks(vector) }
 }
 
-private operator fun Location.minus(that: Location): Vector =
+operator fun Location.minus(that: Location): Vector =
     that.first - this.first to that.second - this.second
 
 val Vector.angle: Double
     get() = atan2(second.toDouble(), -first.toDouble()).let { if (it >= 0.0) it else it + PI + PI }
 
-fun Location.blocks(that: Location): Boolean {
+fun Vector.blocks(that: Vector): Boolean {
     return if (this == that) false
     else this.second * that.first == this.first * that.second &&
             this.first.sign == that.first.sign &&
