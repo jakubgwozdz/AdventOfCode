@@ -1,5 +1,7 @@
 package advent2019.day10
 
+import advent2019.AssertBuilder
+import advent2019.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import kotlin.test.assertEquals
@@ -43,42 +45,39 @@ internal class Day10KtTest {
     }
 
     @Test
-    fun testStep() {
-        assertAll(
-            { assertEquals(-1 to 0, (-8 to 0).step) },
-            { assertEquals(1 to 1, (1 to 1).step) },
-            { assertEquals(0 to -1, (0 to -1).step) },
-            { assertEquals(1 to 0, (5 to 0).step) },
-            { assertEquals(1 to 1, (5 to 5).step) },
-            { assertEquals(1 to 2, (1 to 2).step) },
-            { assertEquals(1 to -2, (1 to -2).step) },
-            { assertEquals(1 to 2, (4 to 8).step) },
-            { assertEquals(3 to 2, (6 to 4).step) },
-            { assertEquals(3 to 2, (3 to 2).step) },
-            { assertEquals(4 to 3, (16 to 12).step) },
-            { assertEquals(4 to -3, (16 to -12).step) },
-            { assertEquals(-4 to -3, (-16 to -12).step) },
-            { assertEquals(-4 to 3, (-16 to 12).step) },
-            { assertEquals(3 to 4, (12 to 16).step) },
-            { assertEquals(3 to -4, (12 to -16).step) },
-            { assertEquals(-3 to -4, (-12 to -16).step) },
-            { assertEquals(-3 to 4, (-12 to 16).step) },
-            { assertEquals(0 to 0, (0 to 0).step) }
-        )
-    }
-
-    @Test
     fun testAngle() {
-//        assertAll(
-//            { assertTrue { (-8 to 0).angle.let { it > } } },
-//            { expect(0.0) { (-5 to 0).angle } }
-//        )
         listOf(
             -10 to 0, -10 to 1, -10 to 10, -1 to 10, 0 to 10, 1 to 10, 10 to 10, 10 to 1,
             10 to 0, 10 to -1, 10 to -10, 1 to -10, 0 to -10, -1 to -10, -10 to -10, -10 to -1
-        )
-            .forEach { println("$it.angle = ${it.angle}") }
+        ).run {
+            this.indices
+                .filter { index -> index > 0 }
+                .forEach { index -> assertThat(this[index]).hasGreaterAngleThan(this[index - 1]) }
+        }
     }
 
+    @Test
+    fun testBlocks() {
+        assertAll(
+            { assertThat(2 to 2).blocksNot(-5 to -5) },
+            { assertThat(0 to 2).blocksNot(0 to -5) },
+            { assertThat(0 to 2).blocksNot(0 to 1) },
+            { assertThat(0 to 1).blocks(0 to 2) },
+            { assertThat(-12 to -9).blocksNot(16 to 12) },
+            { assertThat(-12 to 9).blocksNot(16 to 12) },
+            { assertThat(12 to -9).blocksNot(16 to 12) },
+            { assertThat(9 to 12).blocksNot(16 to 12) },
+            { assertThat(12 to 9).blocks(16 to 12) },
+            { assertThat(16 to 12).blocksNot(8 to 6) },
+            { assertThat(4 to 3).blocks(16 to 12) },
+            { assertThat(1 to 1).blocksNot(1 to 1) }
+        )
+    }
 
 }
+
+private fun AssertBuilder<Vector>.hasGreaterAngleThan(o: Vector) =
+    isTrue("$t (angle ${t.angle}) should have greater angle than $o (angle ${o.angle})") { it.angle > o.angle }
+
+private fun AssertBuilder<Vector>.blocks(o: Vector) = isTrue("$t should block $o") { it.blocks(o) }
+private fun AssertBuilder<Vector>.blocksNot(o: Vector) = isFalse("$t should NOT block $o") { it.blocks(o) }

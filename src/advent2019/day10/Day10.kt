@@ -1,6 +1,5 @@
 package advent2019.day10
 
-import advent2019.gcd
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlin.math.PI
@@ -17,9 +16,6 @@ fun main() {
         .also { logWithTime("best is ${it.first} with ${it.second.size} in line of sight") }
     val laser = bestLocation.first
     var toVaporize = bestLocation.second
-
-//    val laser = 29 to 26
-//    var toVaporize = visible(laser, asteroids)
 
     val vaporized = mutableListOf<Location>()
 
@@ -42,9 +38,7 @@ typealias Vector = Pair<Int, Int>
 
 fun parseAsteroids(lines: List<String>): Collection<Location> {
     return lines
-        .mapIndexed { i, l ->
-            l.mapIndexedNotNull { j, c -> if (c == '#') i to j else null }
-        }
+        .mapIndexed { i, l -> l.mapIndexedNotNull { j, c -> if (c == '#') i to j else null } }
         .flatten()
 }
 
@@ -67,26 +61,14 @@ fun Location.canSee(that: Location, asteroids: Collection<Location>): Boolean {
 private operator fun Location.minus(that: Location): Vector =
     that.first - this.first to that.second - this.second
 
-val gcdCache = mutableMapOf<Pair<Int, Int>, Int>()
-val stepCache = mutableMapOf<Vector, Vector>()
-
-val Vector.step: Vector
-    get() = stepCache.computeIfAbsent(this) {(dy,dx)->
-        when {
-            dy == 0 -> 0 to dx.sign
-            dx == 0 -> dy.sign to 0
-            else -> gcdCache
-                .computeIfAbsent(dy.absoluteValue to dx.absoluteValue) { (a, b) -> gcd(a, b) }
-                .let { dy / it to dx / it }
-        }
-    }
-
 val Vector.angle: Double
     get() = atan2(second.toDouble(), -first.toDouble()).let { if (it >= 0.0) it else it + PI + PI }
 
 fun Location.blocks(that: Location): Boolean {
     return if (this == that) false
-    else this.step == that.step &&
+    else this.second * that.first == this.first * that.second &&
+            this.first.sign == that.first.sign &&
+            this.second.sign == that.second.sign &&
             this.first.absoluteValue <= that.first.absoluteValue &&
             this.second.absoluteValue <= that.second.absoluteValue
 }
