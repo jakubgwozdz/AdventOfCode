@@ -2,6 +2,7 @@ package advent2019.intcode
 
 import java.math.BigInteger
 import java.math.BigInteger.ONE
+import java.math.BigInteger.ZERO
 
 sealed class Param {
     abstract val value: BigInteger
@@ -21,7 +22,12 @@ data class ImmediateParam(override val value: BigInteger) : Param() {
 
 data class RelativeParam(override val value: BigInteger) : Param() {
     override fun toString(): String {
-        return "[rb+$value]"
+        return when {
+            value < ZERO -> "[rb$value]"
+            value == ZERO -> "[rb]"
+            value > ZERO -> "[rb+$value]"
+            else -> error("$value")
+        }
     }
 }
 
@@ -33,6 +39,7 @@ data class Op(val name: String, val params: List<Param>) : Disassembly() {
     override fun toString(): String {
         return "$name ${params.joinToString(", ")}"
     }
+
     override val size: BigInteger
         get() = ONE + params.size
 }
@@ -41,6 +48,7 @@ data class Data(val value: BigInteger) : Disassembly() {
     override fun toString(): String {
         return "DATA  $value"
     }
+
     override val size: BigInteger
         get() = ONE
 }
@@ -81,4 +89,18 @@ fun dissassembly(memory: Memory, addr: BigInteger): Disassembly {
     } catch (e: Exception) {
         Data(memory[addr])
     }
+}
+
+fun disassemblyProgram(program: String): Sequence<String> {
+    val memory = parse(program)
+    var addr = ZERO
+
+    return object : Iterator<String> {
+        override fun hasNext(): Boolean = addr < memory.size
+        override fun next(): String = dissassembly(memory, addr)
+            .let { "${addr.toString().padStart(6)}: $it" to it.size }
+            .also { addr += it.second }
+            .first
+    }
+        .asSequence()
 }
