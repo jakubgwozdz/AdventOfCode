@@ -58,15 +58,9 @@ fun dissassembly(memory: Memory, addr: BigInteger): Disassembly {
     fun params(count: Int): List<Param> {
         return (1..count).map {
             when (nthParamMode(it, memory[addr])) {
-                ParamMode.Position -> PositionParam(
-                    memory[addr + it]
-                )
-                ParamMode.Immediate -> ImmediateParam(
-                    memory[addr + it]
-                )
-                ParamMode.Relative -> RelativeParam(
-                    memory[addr + it]
-                )
+                ParamMode.Position -> PositionParam(memory[addr + it])
+                ParamMode.Immediate -> ImmediateParam(memory[addr + it])
+                ParamMode.Relative -> RelativeParam(memory[addr + it])
             }
         }
     }

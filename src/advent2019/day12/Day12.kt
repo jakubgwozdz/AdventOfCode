@@ -6,27 +6,27 @@ import advent2019.readAllLines
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 
-val regex = Regex("<x=(-?)(\\d+),\\s*y=(-?)(\\d+),\\s*z=(-?)(\\d+)\\s*>")
-
 interface Vector<V> {
     val absoluteValue: Int
     val sign: V
-    operator fun minus(that: V): V
-    operator fun plus(that: V): V
+    operator fun minus(o: V): V
+    operator fun plus(o: V): V
 }
 
 data class Vector3(val x: Int, val y: Int, val z: Int) : Vector<Vector3> {
     override val absoluteValue get() = x.absoluteValue + y.absoluteValue + z.absoluteValue
-    override val sign get() = Vector3(this.x.sign, this.y.sign, this.z.sign)
-    override operator fun minus(that: Vector3): Vector3 = Vector3(this.x - that.x, this.y - that.y, this.z - that.z)
-    override operator fun plus(that: Vector3): Vector3 = Vector3(this.x + that.x, this.y + that.y, this.z + that.z)
+    override val sign get() = Vector3(x.sign, y.sign, z.sign)
+    override operator fun minus(o: Vector3): Vector3 = Vector3(x - o.x, y - o.y, z - o.z)
+    override operator fun plus(o: Vector3): Vector3 = Vector3(x + o.x, y + o.y, z + o.z)
+    override fun toString(): String =
+        "<x=${x.toString().padStart(3)}, y=${y.toString().padStart(3)}, z=${y.toString().padStart(3)}>"
 }
 
 data class Vector1(val x: Int) : Vector<Vector1> {
     override val absoluteValue get() = x.absoluteValue
-    override val sign get() = Vector1(this.x.sign)
-    override operator fun minus(that: Vector1): Vector1 = Vector1(this.x - that.x)
-    override operator fun plus(that: Vector1): Vector1 = Vector1(this.x + that.x)
+    override val sign get() = Vector1(x.sign)
+    override operator fun minus(o: Vector1): Vector1 = Vector1(x - o.x)
+    override operator fun plus(o: Vector1): Vector1 = Vector1(x + o.x)
 }
 
 data class State<V : Vector<V>>(val locations: List<V>, val velocities: List<V>) {
@@ -36,11 +36,10 @@ data class State<V : Vector<V>>(val locations: List<V>, val velocities: List<V>)
         }.sum()
 
     fun printState(step: Int) {
-        logWithTime("After $step steps:")
+        logWithTime("After $step steps energy is $energy")
         locations.indices.forEach { i ->
-            println("pos=${locations[i]} (${locations[i].absoluteValue}) vel=${velocities[i]} (${velocities[i].absoluteValue})")
+            println("pos:${locations[i]}  vel:${velocities[i]}")
         }
-        println("energy is $energy")
     }
 
     fun step(): State<V> {
@@ -77,9 +76,11 @@ fun main() {
     val z = calcOneDimension(input) { Vector1(it.z) }
         .also { logWithTime("z: $it") }
 
-    println(x * y * z)
     val gcd = gcd(x, gcd(y, z))
-    println(x / gcd * y / gcd * z / gcd)
+    val x1 = x / gcd
+    val y1 = y / gcd
+    val z1 = z / gcd
+    logWithTime("x * y * z = ${x * y * z }, gcd = $gcd, result = ${x1 * y1 * z1}")
 
 }
 
@@ -90,25 +91,25 @@ fun calcOneDimension(
     var state = initialState(input).let { v3 ->
         State(v3.locations.map(selector), v3.velocities.map(selector))
     }
-    val cache = mutableMapOf<State<Vector1>, Long>()
+    val state0 = state
     var iteration = 0L
 
-    while (!cache.containsKey(state)) {
-        cache[state] = iteration
+    do {
         iteration++
         state = state.step()
-    }
-    println("iteration $iteration was prev @ ${cache[state]}")
+    } while (state != state0)
     return iteration
 }
 
 fun phase1(input: List<String>, times: Int) {
-    // phase 1
     var state = initialState(input)
     state.printState(0)
     repeat(times) { state = state.step() }
     state.printState(times)
 }
+
+// ikr
+val regex = Regex("<x=\\s*(-?)(\\d+),\\s*y\\s*=(-?)(\\d+),\\s*z\\s*=(-?)(\\d+)\\s*>")
 
 fun initialState(input: List<String>): State<Vector3> {
     val locations = input
