@@ -30,9 +30,9 @@ data class Vector1(val x: Int) : Vector<Vector1> {
 }
 
 data class State<V : Vector<V>>(val locations: List<V>, val velocities: List<V>) {
-    private val energy
+    val energy
         get() = locations.indices.map {
-            locations[it].absoluteValue * velocities[it].absoluteValue
+            locations[it].absoluteValue.toLong() * velocities[it].absoluteValue.toLong()
         }.sum()
 
     fun printState(step: Int) {
@@ -67,8 +67,22 @@ fun main() {
 //    val input = "<x=-1, y=0, z=2>\n<x=2, y=-10, z=-7>\n<x=4, y=-8, z=8>\n<x=3, y=5, z=-1>".lines()
 
     phase1(input, 1000)
+        .also { logWithTime("phase1 result is $it")}
 
-    // phase 2 stupid and not really working yet...
+    phase2(input)
+        .also { logWithTime("phase2 result is $it")}
+
+}
+
+fun phase1(input: List<String>, times: Int): Long {
+    var state = initialState(input)
+    state.printState(0)
+    repeat(times) { state = state.step() }
+    state.printState(times)
+    return state.energy
+}
+
+fun phase2(input: List<String>): Long {
     val x = calcOneDimension(input) { Vector1(it.x) }
         .also { logWithTime("x plane cycle: $it") }
     val y = calcOneDimension(input) { Vector1(it.y) }
@@ -80,8 +94,8 @@ fun main() {
     val x1 = x / gcd
     val y1 = y / gcd
     val z1 = z / gcd
-    logWithTime("x * y * z = ${x * y * z }, gcd = $gcd, result = ${x1 * y1 * z1}")
-
+    logWithTime("x * y * z = ${x * y * z}, gcd = $gcd, result = ${x1 * y1 * z1}")
+    return x1 * y1 * z1
 }
 
 fun calcOneDimension(
@@ -99,13 +113,6 @@ fun calcOneDimension(
         state = state.step()
     } while (state != state0)
     return iteration
-}
-
-fun phase1(input: List<String>, times: Int) {
-    var state = initialState(input)
-    state.printState(0)
-    repeat(times) { state = state.step() }
-    state.printState(times)
 }
 
 // ikr
