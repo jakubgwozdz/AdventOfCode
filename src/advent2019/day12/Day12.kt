@@ -70,11 +70,11 @@ fun main() {
 
     // phase 2 stupid and not really working yet...
     val x = calcOneDimension(input) { Vector1(it.x) }
-        .also { logWithTime("x: $it") }
+        .also { logWithTime("x plane cycle: $it") }
     val y = calcOneDimension(input) { Vector1(it.y) }
-        .also { logWithTime("y: $it") }
+        .also { logWithTime("y plane cycle: $it") }
     val z = calcOneDimension(input) { Vector1(it.z) }
-        .also { logWithTime("z: $it") }
+        .also { logWithTime("z plane cycle: $it") }
 
     val gcd = gcd(x, gcd(y, z))
     val x1 = x / gcd
