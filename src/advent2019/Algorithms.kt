@@ -36,3 +36,10 @@ tailrec fun gcd(a: Int, b:Int): Int{
         else -> gcd(b.absoluteValue % a.absoluteValue, a.absoluteValue)
     }
 }
+
+tailrec fun gcd(a: Long, b:Long): Long{
+    return when (a) {
+        0L -> b.absoluteValue
+        else -> gcd(b.absoluteValue % a.absoluteValue, a.absoluteValue)
+    }
+}

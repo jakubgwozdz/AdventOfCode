@@ -1,5 +1,6 @@
 package advent2019.day12
 
+import advent2019.gcd
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlin.math.absoluteValue
@@ -29,25 +30,17 @@ data class Vector1(val x: Int) : Vector<Vector1> {
 }
 
 data class State<V : Vector<V>>(val locations: List<V>, val velocities: List<V>) {
-    val energy
+    private val energy
         get() = locations.indices.map {
             locations[it].absoluteValue * velocities[it].absoluteValue
         }.sum()
-
-    fun graph(index: Int, selector: (V) -> Int): String {
-        val loc = selector(locations[index])
-        val nextLoc = loc + selector(velocities[index])
-        return "|".padStart(21, '.').padEnd(41, '.')
-            .run { substring(0, 20 - nextLoc) + "-" + substring(21 - nextLoc) }
-            .run { substring(0, 20 + loc) + "*" + substring(21 + loc) }
-    }
 
     fun printState(step: Int) {
         logWithTime("After $step steps:")
         locations.indices.forEach { i ->
             println("pos=${locations[i]} (${locations[i].absoluteValue}) vel=${velocities[i]} (${velocities[i].absoluteValue})")
         }
-        println("energy is ${energy}")
+        println("energy is $energy")
     }
 
     fun step(): State<V> {
@@ -74,29 +67,31 @@ fun main() {
     val input = readAllLines("input-2019-12.txt")
 //    val input = "<x=-1, y=0, z=2>\n<x=2, y=-10, z=-7>\n<x=4, y=-8, z=8>\n<x=3, y=5, z=-1>".lines()
 
-    phase1(input)
+    phase1(input, 1000)
 
     // phase 2 stupid and not really working yet...
     val x = calcOneDimension(input) { Vector1(it.x) }
-        .also { logWithTime("x: $it")}
+        .also { logWithTime("x: $it") }
     val y = calcOneDimension(input) { Vector1(it.y) }
-        .also { logWithTime("y: $it")}
+        .also { logWithTime("y: $it") }
     val z = calcOneDimension(input) { Vector1(it.z) }
-        .also { logWithTime("z: $it")}
+        .also { logWithTime("z: $it") }
 
-    println(x*y*z) //your answer is too low
+    println(x * y * z)
+    val gcd = gcd(x, gcd(y, z))
+    println(x / gcd * y / gcd * z / gcd)
 
 }
 
 fun calcOneDimension(
     input: List<String>,
     selector: (Vector3) -> Vector1
-): Int {
+): Long {
     var state = initialState(input).let { v3 ->
         State(v3.locations.map(selector), v3.velocities.map(selector))
     }
-    val cache = mutableMapOf<State<Vector1>, Int>()
-    var iteration = 0
+    val cache = mutableMapOf<State<Vector1>, Long>()
+    var iteration = 0L
 
     while (!cache.containsKey(state)) {
         cache[state] = iteration
@@ -107,12 +102,12 @@ fun calcOneDimension(
     return iteration
 }
 
-fun phase1(input: List<String>) {
+fun phase1(input: List<String>, times: Int) {
     // phase 1
     var state = initialState(input)
     state.printState(0)
-    repeat(1000) { state = state.step() }
-    state.printState(1000)
+    repeat(times) { state = state.step() }
+    state.printState(times)
 }
 
 fun initialState(input: List<String>): State<Vector3> {
