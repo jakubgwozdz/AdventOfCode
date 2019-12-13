@@ -1,6 +1,7 @@
 package advent2019.day12
 
 import advent2019.gcd
+import advent2019.lcm
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlin.math.absoluteValue
@@ -67,10 +68,10 @@ fun main() {
 //    val input = "<x=-1, y=0, z=2>\n<x=2, y=-10, z=-7>\n<x=4, y=-8, z=8>\n<x=3, y=5, z=-1>".lines()
 
     phase1(input, 1000)
-        .also { logWithTime("phase1 result is $it")}
+        .also { logWithTime("phase1 result is $it") }
 
     phase2(input)
-        .also { logWithTime("phase2 result is $it")}
+        .also { logWithTime("phase2 result is $it") }
 
 }
 
@@ -90,12 +91,8 @@ fun phase2(input: List<String>): Long {
     val z = calcOneDimension(input) { Vector1(it.z) }
         .also { logWithTime("z plane cycle: $it") }
 
-    val gcd = gcd(x, gcd(y, z))
-    val x1 = x / gcd
-    val y1 = y / gcd
-    val z1 = z / gcd
-    logWithTime("x * y * z = ${x * y * z}, gcd = $gcd, result = ${x1 * y1 * z1}")
-    return x1 * y1 * z1
+    return lcm(x, lcm(y, z))
+        .also { logWithTime("lcm: $it") }
 }
 
 fun calcOneDimension(

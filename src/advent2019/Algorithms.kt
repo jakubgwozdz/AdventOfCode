@@ -43,3 +43,8 @@ tailrec fun gcd(a: Long, b:Long): Long{
         else -> gcd(b.absoluteValue % a.absoluteValue, a.absoluteValue)
     }
 }
+
+fun lcm(a: Long, b:Long): Long{
+    return a * b / gcd(a, b)
+}
+
