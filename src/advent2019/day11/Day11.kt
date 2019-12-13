@@ -8,7 +8,6 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
@@ -18,24 +17,47 @@ import java.math.BigInteger.ZERO
 fun main() {
     val program = readAllLines("input-2019-11.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
+
+    paint(program)
+        .also {
+            logWithTime("Part 1:")
+            output(it)
+            logWithTime("hull is ${it.size}")
+
+        }
+
+    paint(program) { hull[0 to 0] = ONE }
+        .also {
+            logWithTime("Part 2:")
+            output(it)
+            logWithTime("hull is ${it.size}")
+
+        }
+
+}
+
+private fun paint(program: String, robotInitOp: PaintRobot.() -> Unit = {}): MutableMap<Pair<Int, Int>, BigInteger> {
     val memory = parse(program)
     val robotToComp = Channel<BigInteger>(Channel.CONFLATED)
     val compToRobot = Channel<BigInteger>()
-    val instructions = runBlocking {
-        val comp = launch {
+    val robot = PaintRobot(compToRobot, robotToComp).apply(robotInitOp)
+
+    runBlocking {
+        val compJob = launch {
             Computer("PAINT", memory, robotToComp, compToRobot).run()
         }
-        val robot = launch {
-            PaintRobot(compToRobot, robotToComp).run()
+        val robotJob = launch {
+            robot.run()
         }
-        comp.join()
+        compJob.join()
         coroutineContext.cancelChildren()
 
         compToRobot.close()
-        robot.join()
+        robotJob.join()
         robotToComp.close()
     }
-        .also { logWithTime("instructions: $it") }
+
+    return robot.hull;
 }
 
 class PaintRobot(
@@ -44,13 +66,13 @@ class PaintRobot(
 ) {
     var location = 0 to 0
     var direction = 0
-    val hull = mutableMapOf<Pair<Int, Int>, BigInteger>().also { it[0 to 0] = ONE }
+    val hull = mutableMapOf<Pair<Int, Int>, BigInteger>()
 
     suspend fun run() {
         while (!inBuffer.isClosedForReceive) {
             outBuffer.send(hull[location] ?: ZERO)
-            val color = inBuffer.receive().also { logWithTime("color: $it") }
-            val turn = inBuffer.receive().also { logWithTime("turn: $it") }
+            val color = inBuffer.receive()//.also { logWithTime("color: $it") }
+            val turn = inBuffer.receive()//.also { logWithTime("turn: $it") }
             hull[location] = color
             when (turn) {
                 ZERO -> direction--
@@ -67,8 +89,8 @@ class PaintRobot(
                 3 -> y to x - 1
                 else -> error("$direction")
             }
-            logWithTime("hull is ${hull.size}")
-            output(hull)
+//            output(hull)
+//            logWithTime("hull is ${hull.size}")
         }
     }
 }
@@ -78,9 +100,9 @@ fun output(hull: Map<Pair<Int, Int>, BigInteger>) {
     val maxY = hull.keys.map { (y, x) -> y }.max() ?: error("no data")
     val minX = hull.keys.map { (y, x) -> x }.min() ?: error("no data")
     val maxX = hull.keys.map { (y, x) -> x }.max() ?: error("no data")
-    (minY..maxY).map { y->
+    (minY..maxY).map { y ->
         (minX..maxX).map { x ->
-            if (hull[y to x] == ONE) '#' else '.'
+            if (hull[y to x] == ONE) '#' else ' '
         }.joinToString("")
     }.forEach { logWithTime(it) }
 }
