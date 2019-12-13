@@ -41,8 +41,7 @@ interface OutBuffer {
     fun close(): Boolean
 }
 
-class ChannelInBuffer(val id: Any, val channel: ReceiveChannel<BigInteger>, val logIO: Boolean = false) :
-    InBuffer {
+class ChannelInBuffer(val id: Any, val channel: ReceiveChannel<BigInteger>, val logIO: Boolean = false) : InBuffer {
     override suspend fun receive(): BigInteger {
         if (logIO) print("$id <-- ...")
         return channel.receive().also { if (logIO) println("\b\b\b$it") }
@@ -50,8 +49,7 @@ class ChannelInBuffer(val id: Any, val channel: ReceiveChannel<BigInteger>, val 
 
 }
 
-class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val logIO: Boolean = false) :
-    OutBuffer {
+class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val logIO: Boolean = false) : OutBuffer {
     override suspend fun send(v: BigInteger) {
         channel.send(v).also { if (logIO) println("$id --> $v") }
     }
@@ -73,9 +71,7 @@ class Computer(
         receiveChannel: ReceiveChannel<BigInteger>,
         sendChannel: SendChannel<BigInteger>,
         debug: Boolean = false
-    ) : this(id, memory,
-        ChannelInBuffer(id, receiveChannel),
-        ChannelOutBuffer(id, sendChannel), debug)
+    ) : this(id, memory, ChannelInBuffer(id, receiveChannel), ChannelOutBuffer(id, sendChannel), debug)
 
     var ip: BigInteger = ZERO // instruction pointer
     var rb: BigInteger = ZERO // relative base
@@ -101,12 +97,7 @@ class Computer(
     suspend fun run() {
         while (true) {
             if (debug)
-                logWithTime(
-                    "${ip.toString().padStart(6)}: ${dissassembly(
-                        memory,
-                        ip
-                    )}"
-                )
+                logWithTime("${ip.toString().padStart(6)}: ${dissassembly(memory, ip)}")
             when (opcode(operation)) {
                 1 -> opADD()
                 2 -> opMUL()

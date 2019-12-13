@@ -58,12 +58,7 @@ fun part2(program: String): Int {
             }
         }
         val comp = launch {
-            Computer(
-                "ARCADE",
-                memory,
-                input,
-                ChannelOutBuffer("ARCADE", output)
-            ).run()
+            Computer("ARCADE", memory, input, ChannelOutBuffer("ARCADE", output)).run()
         }
 
         comp.join()

@@ -14,26 +14,20 @@ interface Vector<V> {
     operator fun plus(o: V): V
 }
 
-data class Vector3(val x: Int, val y: Int, val z: Int) :
-    Vector<Vector3> {
+data class Vector3(val x: Int, val y: Int, val z: Int) : Vector<Vector3> {
     override val absoluteValue get() = x.absoluteValue + y.absoluteValue + z.absoluteValue
     override val sign get() = Vector3(x.sign, y.sign, z.sign)
-    override operator fun minus(o: Vector3): Vector3 =
-        Vector3(x - o.x, y - o.y, z - o.z)
-    override operator fun plus(o: Vector3): Vector3 =
-        Vector3(x + o.x, y + o.y, z + o.z)
+    override operator fun minus(o: Vector3): Vector3 = Vector3(x - o.x, y - o.y, z - o.z)
+    override operator fun plus(o: Vector3): Vector3 = Vector3(x + o.x, y + o.y, z + o.z)
     override fun toString(): String =
         "<x=${x.toString().padStart(3)}, y=${y.toString().padStart(3)}, z=${y.toString().padStart(3)}>"
 }
 
-data class Vector1(val x: Int) :
-    Vector<Vector1> {
+data class Vector1(val x: Int) : Vector<Vector1> {
     override val absoluteValue get() = x.absoluteValue
     override val sign get() = Vector1(x.sign)
-    override operator fun minus(o: Vector1): Vector1 =
-        Vector1(x - o.x)
-    override operator fun plus(o: Vector1): Vector1 =
-        Vector1(x + o.x)
+    override operator fun minus(o: Vector1): Vector1 = Vector1(x - o.x)
+    override operator fun plus(o: Vector1): Vector1 = Vector1(x + o.x)
 }
 
 data class State<V : Vector<V>>(val locations: List<V>, val velocities: List<V>) {

@@ -3,8 +3,7 @@ package advent2019
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-fun <T> assertThat(t: T): AssertBuilder<T> =
-    AssertBuilder(t)
+fun <T> assertThat(t: T): AssertBuilder<T> = AssertBuilder(t)
 
 class AssertBuilder<T>(val t: T) {
     fun isTrue(op: (T) -> Boolean) =

@@ -27,12 +27,7 @@ fun run1(programStr: String, input: List<BigInteger>): List<BigInteger> {
 
     val inBuffer = Channel<BigInteger>()
     val outBuffer = Channel<BigInteger>(Channel.UNLIMITED)
-    val computer = Computer(
-        "BOOST",
-        parse(programStr),
-        inBuffer,
-        outBuffer
-    )
+    val computer = Computer("BOOST", parse(programStr), inBuffer, outBuffer)
 
     return runBlocking {
         val job = launch {

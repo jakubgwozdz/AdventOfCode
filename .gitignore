@@ -1,6 +1,2 @@
 # Project exclude paths
 /out/
-.cookie
-input-*.txt
-.gradle/
-build/
