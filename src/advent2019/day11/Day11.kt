@@ -4,9 +4,11 @@ import advent2019.intcode.Computer
 import advent2019.intcode.parse
 import advent2019.logWithTime
 import advent2019.readAllLines
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
@@ -26,6 +28,12 @@ fun main() {
         val robot = launch {
             PaintRobot(compToRobot, robotToComp).run()
         }
+        comp.join()
+        coroutineContext.cancelChildren()
+
+        compToRobot.close()
+        robot.join()
+        robotToComp.close()
     }
         .also { logWithTime("instructions: $it") }
 }

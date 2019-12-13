@@ -1,5 +1,6 @@
 package advent2019.intcode
 
+import advent2019.logWithTime
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 import java.math.BigInteger
@@ -11,13 +12,15 @@ class Memory(initial: Map<BigInteger, BigInteger>) {
     operator fun set(addr: BigInteger, value: BigInteger) {
         map[addr] = value
     }
-    val size:BigInteger get() = map.keys.max()?:ZERO
+
+    val size: BigInteger get() = map.keys.max() ?: ZERO
 }
 
 fun opcode(operation: BigInteger): Int = operation % 100
 
 // params handling
 enum class ParamMode { Position, Immediate, Relative }
+
 fun nthParamMode(n: Int, operation: BigInteger): ParamMode {
     var mode = operation / 10
     repeat(n) { mode /= 10 }
@@ -29,16 +32,52 @@ fun nthParamMode(n: Int, operation: BigInteger): ParamMode {
     }
 }
 
+interface InBuffer {
+    suspend fun receive(): BigInteger
+}
+
+interface OutBuffer {
+    suspend fun send(v: BigInteger)
+    fun close(): Boolean
+}
+
+class ChannelInBuffer(val id: Any, val channel: ReceiveChannel<BigInteger>, val logIO: Boolean = false) : InBuffer {
+    override suspend fun receive(): BigInteger {
+        if (logIO) print("$id <-- ...")
+        return channel.receive().also { if (logIO) println("\b\b\b$it") }
+    }
+
+}
+
+class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val logIO: Boolean = false) : OutBuffer {
+    override suspend fun send(v: BigInteger) {
+        channel.send(v).also { if (logIO) println("$id --> $v") }
+    }
+
+    override fun close() = channel.close()
+
+}
+
 class Computer(
     val id: Any,
     val memory: Memory,
-    val inBuffer: ReceiveChannel<BigInteger>,
-    val outBuffer: SendChannel<BigInteger>
+    val inBuffer: InBuffer,
+    val outBuffer: OutBuffer,
+    val debug: Boolean = false
 ) {
+    constructor(
+        id: Any,
+        memory: Memory,
+        receiveChannel: ReceiveChannel<BigInteger>,
+        sendChannel: SendChannel<BigInteger>,
+        debug: Boolean = false
+    ) : this(id, memory, ChannelInBuffer(id, receiveChannel), ChannelOutBuffer(id, sendChannel), debug)
+
     var ip: BigInteger = ZERO // instruction pointer
     var rb: BigInteger = ZERO // relative base
 
-    suspend fun read(): BigInteger = inBuffer.receive()
+    suspend fun read() = inBuffer.receive()
+
     suspend fun write(v: BigInteger) = outBuffer.send(v)
 
     val operation: BigInteger get() = memory[ip]
@@ -57,7 +96,8 @@ class Computer(
     // main loop
     suspend fun run() {
         while (true) {
-//            log("computer $id opcode $opcode at addr $ip")
+            if (debug)
+                logWithTime("${ip.toString().padStart(6)}: ${dissassembly(memory, ip)}")
             when (opcode(operation)) {
                 1 -> opADD()
                 2 -> opMUL()
@@ -69,7 +109,7 @@ class Computer(
                 8 -> opSETE()
                 9 -> opMOVRB()
                 99 -> {
-                    outBuffer.close()
+//                    outBuffer.close()
                     return
                 }
                 else -> error("unknown opcode $operation at addr $ip")
