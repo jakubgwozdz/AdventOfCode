@@ -15,9 +15,9 @@ internal class Day14KtTest {
 7 A, 1 D => 1 E
 7 A, 1 E => 1 FUEL"""
 
-        expect(Reaction(listOf(7L to "A", 1L to "E"), 1L to "FUEL")) { parseReaction("7 A, 1 E => 1 FUEL") }
+        expect(Reaction(listOf(7L of "A", 1L of "E"), 1 of "FUEL")) { parseReaction("7 A, 1 E => 1 FUEL") }
 
-        expect(Reaction(listOf(7L to "A", 1L to "E"), 1L to "FUEL")) { parseReactions(input.lines())["FUEL"] }
+        expect(Reaction(listOf(7L of "A", 1L of "E"), 1 of "FUEL")) { parseReactions(input.lines())["FUEL"] }
         expect(6) { parseReactions(input.lines()).size }
 
     }
@@ -31,7 +31,7 @@ internal class Day14KtTest {
 7 A, 1 D => 1 E
 7 A, 1 E => 1 FUEL"""
 
-        expect(31L) { calculate("ORE", 1L to "FUEL", parseReactions(input.lines())) }
+        expect(31) { calculate("ORE", 1 of "FUEL", parseReactions(input.lines())) }
     }
 
     @Test
@@ -54,8 +54,8 @@ internal class Day14KtTest {
 7 XCVML => 6 RJRHP
 5 BHXH, 4 VRPVC => 5 LTCX"""
 
-        expect(2210736L) { calculate("ORE", 1L to "FUEL", parseReactions(input.lines())) }
-        expect(460664L ) { calculateMax("FUEL", 1000000000000L to "ORE", parseReactions(input.lines())) }
+        expect(2210736) { calculate("ORE", 1 of "FUEL", parseReactions(input.lines())) }
+        expect(460664) { calculateMax("FUEL", 1000000000000 of "ORE", parseReactions(input.lines())) }
     }
 
     @Test
