@@ -46,20 +46,16 @@ enum class Direction(val code: BigInteger, val delta: Delta) {
     E(4.toBigInteger(), 0 to 1)
 }
 
+enum class MapContent(val code: BigInteger, val canGoThrough: Boolean) {
+    Wall(0.toBigInteger(), false),
+    Space(1.toBigInteger(), true),
+    Target(2.toBigInteger(), true);
+}
+
 operator fun Location.plus(d: Direction) = this + d.delta
 operator fun Location.plus(delta: Delta) = first + delta.first to second + delta.second
 operator fun Location.minus(what: Location) = Direction.values().single { this == what + it }
 
-
-enum class MapContent(val code: BigInteger) {
-    Wall(0.toBigInteger()), Space(1.toBigInteger()), Target(2.toBigInteger());
-
-    companion object {
-        fun fromCode(c: BigInteger): MapContent {
-            return values().single { it.code == c }
-        }
-    }
-}
 
 
 fun mapShip(memory: Memory): Map<Location, MapContent> = runBlocking {
@@ -69,24 +65,26 @@ fun mapShip(memory: Memory): Map<Location, MapContent> = runBlocking {
     val inBuffer = Channel<BigInteger>()
     val outBuffer = Channel<BigInteger>()
     val job = launch { Computer("ROBOT", memory, inBuffer, outBuffer).run() }
-    while (true) {
+    while (job.isActive) {
         var direction = nextUnknown(location, map)
+
         if (direction == null) { // no more moves, go back
             val from = cameFrom[location]
-            if (from == null) {
+            if (from != null) {
+                direction = from - location
+            } else {
                 inBuffer.send(ZERO)
-                break
+                continue
             }
-            direction = from - location
         }
 
         inBuffer.send(direction.code)
 
         val nextLoc = location + direction
-        val result = MapContent.fromCode(outBuffer.receive())
+        val result = outBuffer.receive().run { values().single { this == it.code } }
         map[nextLoc] = result
 
-        if (result != MapContent.Wall) {
+        if (result.canGoThrough) {
             if (nextLoc != 0 to 0) cameFrom.computeIfAbsent(nextLoc) { location }
             location = nextLoc
         }
