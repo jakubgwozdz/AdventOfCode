@@ -59,19 +59,29 @@ internal class Day14KtTest {
     }
 
     @Test
-    fun testProductionsCount() {
-        expect(1) { productionsCount(1, 1) }
-        expect(1) { productionsCount(1, 10) }
-        expect(1) { productionsCount(9, 10) }
-        expect(1) { productionsCount(10, 10) }
-        expect(0) { productionsCount(0, 10) }
-        expect(0) { productionsCount(0, 1) }
-        expect(11) { productionsCount(11, 1) }
-        expect(2) { productionsCount(11, 10) }
-        expect(2) { productionsCount(19, 10) }
-        expect(2) { productionsCount(20, 10) }
-        expect(3) { productionsCount(21, 10) }
+    fun testNoOfBatches() {
+        expect(1) { noOfBatches(1, 1) }
+        expect(1) { noOfBatches(1, 10) }
+        expect(1) { noOfBatches(9, 10) }
+        expect(1) { noOfBatches(10, 10) }
+        expect(0) { noOfBatches(0, 10) }
+        expect(0) { noOfBatches(0, 1) }
+        expect(11) { noOfBatches(11, 1) }
+        expect(2) { noOfBatches(11, 10) }
+        expect(2) { noOfBatches(19, 10) }
+        expect(2) { noOfBatches(20, 10) }
+        expect(3) { noOfBatches(21, 10) }
     }
 
+    @Test
+    fun testLowestNegative() {
+        expect(11) { lowestNegative(5) { i -> (10 - i) } }
+        expect(11) { lowestNegative { i -> (10 - i) } }
+        expect(1) { lowestNegative { i -> (-i) } }
+        expect(1100) { lowestNegative { i -> (10 - i / 100) } }
+        expect(100100) { lowestNegative { i -> (1000 - i / 100) } }
+        expect(100150) { lowestNegative { i -> (1000 - (i-50) / 100) } }
+        expect(101) { lowestNegative { i -> (1000 - i * 10) } }
+    }
 
 }
