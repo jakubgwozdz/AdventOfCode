@@ -19,40 +19,39 @@ interface DigitsProvider {
     // 1-based
     operator fun get(i: Int): Int
 
-    val repeats: Int
-    val length: Int
+    val cycle: Int
+    val repeats: Int get() = 1
+    val length: Int get() = cycle * repeats
+
+    fun asString(): String {
+        return buildString {
+            repeat(this@DigitsProvider.length.coerceAtMost(100))
+            { append(this@DigitsProvider[it + 1]) }
+        }
+    }
+
 }
 
 class StringDigitsProvider(val input: String, override val repeats: Int = 1) : DigitsProvider {
-    override fun get(i: Int) = input[(i - 1) % input.length] - '0'
-    override val length: Int = input.length * repeats
-    override fun toString(): String {
-        return buildString {
-            repeat(this@StringDigitsProvider.length.coerceAtMost(100))
-            { append(this@StringDigitsProvider[it + 1]) }
-        }
-    }
+    override fun get(i: Int) = input[(i - 1) % cycle] - '0'
+    override val cycle = input.length
 }
 
 class CachingDigitsProvider(
     val input: DigitsProvider,
     override val repeats: Int = 1, val op: (Int) -> Int
-) :
-    DigitsProvider {
-    private val cache = mutableMapOf<Int, Int>()
-    override fun get(i: Int) = cache.computeIfAbsent((i - 1) % input.length + 1) { op(it) }
-    override val length: Int = input.length * repeats
-    override fun toString(): String {
-        return buildString {
-            repeat(this@CachingDigitsProvider.length.coerceAtMost(100))
-            { append(this@CachingDigitsProvider[it + 1]) }
-        }
-    }
+) : DigitsProvider {
+    //    private val cache = mutableMapOf<Int, Int>()
+//    override fun get(i: Int) = cache.computeIfAbsent((i - 1) % cycle + 1) { k -> op(k) }
+    private val cache = (1..input.length).map { op(it) }
+    override fun get(i: Int) = cache[(i - 1) % cycle]
+
+    override val cycle = input.length
 }
 
 fun fftSingle(input: DigitsProvider, i: Int): Int {
     var sum = 0
-    val lcm = lcm(input.length / input.repeats, i * 4)
+    val lcm = lcm(input.cycle, 4 * i)
     val noOfCycles = input.length / lcm
     if (noOfCycles > 0) {
         (1..lcm).forEach {
@@ -72,25 +71,15 @@ fun fftSingle(input: DigitsProvider, i: Int): Int {
     }
 }
 
-fun fft(input: String, iterations: Int): String {
-    return fft(StringDigitsProvider(input), iterations)
-        .let { provider -> buildString { repeat(provider.length) { append(provider[it + 1]) } } }
-}
-
 fun fft(input: DigitsProvider, iterations: Int): DigitsProvider {
     return (1..iterations).fold(input) { provider, iter ->
         fftPhase(provider)
-            .also { logWithTime("$iter: $it...") }
+            .also { logWithTime("$iter... ${it.asString()}") }
     }
 }
 
 fun fftPhase(input: DigitsProvider): DigitsProvider {
     return CachingDigitsProvider(input) { fftSingle(input, it) }
-}
-
-fun fftPhase(input: String): String {
-    return fftPhase(StringDigitsProvider(input))
-        .let { provider -> buildString { repeat(provider.length) { append(provider[it + 1]) } } }
 }
 
 fun fftRepeat(input: String, repeats: Int, iterations: Int, offset: Int, messageLen: Int): String {
@@ -99,4 +88,9 @@ fun fftRepeat(input: String, repeats: Int, iterations: Int, offset: Int, message
         iterations
     )
         .let { provider -> buildString { repeat(messageLen) { append(provider[it + 1 + offset]) } } }
+}
+
+fun fft(input: String, iterations: Int): String {
+    return fft(StringDigitsProvider(input), iterations)
+        .let { provider -> buildString { repeat(provider.length) { append(provider[it + 1]) } } }
 }

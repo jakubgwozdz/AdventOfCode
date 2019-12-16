@@ -2,6 +2,7 @@ package advent2019.day16
 
 import advent2019.readAllLines
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import kotlin.test.expect
@@ -14,6 +15,11 @@ internal class Day16KtTest {
         expect("34040438") { fftPhase("48226158") }
         expect("03415518") { fftPhase("34040438") }
         expect("01029498") { fftPhase("03415518") }
+    }
+
+    private fun fftPhase(input: String): String {
+        return fftPhase(StringDigitsProvider(input))
+            .let { provider -> buildString { repeat(provider.length) { append(provider[it + 1]) } } }
     }
 
     @Test
@@ -44,7 +50,7 @@ internal class Day16KtTest {
 
     @Test
     internal fun testPart2b() {
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(3)) {
+        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10)) {
             expect("84462026") { fftRepeat("03036732577212944063491565474664", 10000, 100, 303673, 8) }
         }
         Assertions.assertTimeoutPreemptively(Duration.ofSeconds(3)) {
@@ -82,6 +88,14 @@ internal class Day16KtTest {
         }
         expect("403893683670591085908457663043256980782088917468785168225711620724036") {
             fftRepeat("43252823746532874529036", 3, 10, 0, 69)
+        }
+    }
+
+    @Test
+    @Disabled
+    internal fun testRepeated4() {
+        expect("11111111") {
+            fftRepeat("1111", 10000, 100, 0, 100)
         }
     }
 
