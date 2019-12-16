@@ -14,7 +14,7 @@ internal class Day16KtTest {
 
     @Test
     internal fun testPattern() {
-        expect(listOf(1, 0, -1, 0, 1, 0 - 1, 0)) { fftPattern(1, 8) }
+        expect(listOf(1, 0, -1, 0, 1, 0, -1, 0)) { fftPattern(1, 8) }
         expect(listOf(0, 1, 1, 0, 0, -1, -1, 0)) { fftPattern(2, 8) }
     }
 }
