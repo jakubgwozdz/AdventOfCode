@@ -35,12 +35,18 @@ interface DigitsProvider {
 class StringDigitsProvider(val input: String, repeats: Int = 1) : DigitsProvider {
     override fun get(i: Int) = input[(i - 1) % input.length] - '0'
     override val size: Int = input.length * repeats
+    override fun toString(): String {
+        return input.take(100)
+    }
 }
 
 class CachingDigitsProvider(val input: DigitsProvider, val op: (Int) -> Int) : DigitsProvider {
     val cache = mutableMapOf<Int, Int>()
     override fun get(i: Int) = cache.computeIfAbsent(i) { op(i) }
     override val size: Int = input.size
+    override fun toString(): String {
+        return buildString { repeat(input.size.coerceAtMost(100)) { append(this@CachingDigitsProvider[it + 1]) } }
+    }
 }
 
 fun fftSingle(input: DigitsProvider, i: Int): Int {
@@ -60,7 +66,9 @@ fun fft(input: String, iterations: Int): String {
 }
 
 fun fft(input: DigitsProvider, iterations: Int): DigitsProvider {
-    return (1..iterations).fold(input) { i, _ -> fftPhase(i) }
+    return (1..iterations).fold(input) { provider, iter -> fftPhase(provider)
+        .also { logWithTime("$iter: $it...") }
+    }
 }
 
 fun fftPhase(input: DigitsProvider): DigitsProvider {
