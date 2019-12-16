@@ -9,17 +9,6 @@ import kotlin.test.expect
 internal class Day16KtTest {
 
     @Test
-    internal fun testPattern() {
-        expect(listOf(1, 0, -1, 0, 1, 0, -1, 0)) { fftPattern(1, 8) }
-        expect(listOf(0, 1, 1, 0, 0, -1, -1, 0)) { fftPattern(2, 8) }
-        expect(listOf(0, 0, 1, 1, 1, 0, 0, 0)) { fftPattern(3, 8) }
-    }
-
-    private fun fftPattern(i: Int, l: Int): List<Int> {
-        return (1..l).map { fftPatternSingle(it, i) }
-    }
-
-    @Test
     internal fun testPhase() {
         expect("48226158") { fftPhase("12345678") }
         expect("34040438") { fftPhase("48226158") }
@@ -42,7 +31,7 @@ internal class Day16KtTest {
 
     @Test
     internal fun testPart2a() {
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(3)) {
+        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10)) {
             expect("24176176") { fftRepeat("80871224585914546619083218645595", 1, 100, 0, 8) }
         }
         Assertions.assertTimeoutPreemptively(Duration.ofSeconds(3)) {
@@ -64,6 +53,11 @@ internal class Day16KtTest {
         Assertions.assertTimeoutPreemptively(Duration.ofSeconds(3)) {
             expect("53553731") { fftRepeat("03081770884921959731165446850517", 10000, 100, 308177, 8) }
         }
+    }
+
+    @Test
+    internal fun testFftSingle() {
+//        expect()
     }
 
 }
