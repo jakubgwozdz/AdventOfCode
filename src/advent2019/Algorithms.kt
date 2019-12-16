@@ -9,7 +9,7 @@ fun permutations(n: Int): List<List<Int>> {
     return result.toList()
 }
 
-fun generate(k: Int, a: IntArray, outputOp: (IntArray)->Unit) {
+fun generate(k: Int, a: IntArray, outputOp: (IntArray) -> Unit) {
     if (k == 1) outputOp.invoke(a)
     else {
         generate(k - 1, a, outputOp)
@@ -30,21 +30,25 @@ fun IntArray.swap(i: Int, j: Int) {
     this[j] = v
 }
 
-tailrec fun gcd(a: Int, b:Int): Int{
+tailrec fun gcd(a: Int, b: Int): Int {
     return when (a) {
         0 -> b.absoluteValue
         else -> gcd(b.absoluteValue % a.absoluteValue, a.absoluteValue)
     }
 }
 
-tailrec fun gcd(a: Long, b:Long): Long{
+tailrec fun gcd(a: Long, b: Long): Long {
     return when (a) {
         0L -> b.absoluteValue
         else -> gcd(b.absoluteValue % a.absoluteValue, a.absoluteValue)
     }
 }
 
-fun lcm(a: Long, b:Long): Long{
+fun lcm(a: Int, b: Int): Int {
+    return lcm(a.toLong(), b.toLong()).toInt()
+}
+
+fun lcm(a: Long, b: Long): Long {
     return a * b / gcd(a, b)
 }
 

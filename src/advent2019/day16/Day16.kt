@@ -1,5 +1,6 @@
 package advent2019.day16
 
+import advent2019.lcm
 import advent2019.logWithTime
 import advent2019.readAllLines
 
@@ -26,7 +27,10 @@ class StringDigitsProvider(val input: String, override val repeats: Int = 1) : D
     override fun get(i: Int) = input[(i - 1) % input.length] - '0'
     override val length: Int = input.length * repeats
     override fun toString(): String {
-        return input.take(100)
+        return buildString {
+            repeat(this@StringDigitsProvider.length.coerceAtMost(100))
+            { append(this@StringDigitsProvider[it + 1]) }
+        }
     }
 }
 
@@ -40,7 +44,7 @@ class CachingDigitsProvider(
     override val length: Int = input.length * repeats
     override fun toString(): String {
         return buildString {
-            repeat(input.length.coerceAtMost(100))
+            repeat(this@CachingDigitsProvider.length.coerceAtMost(100))
             { append(this@CachingDigitsProvider[it + 1]) }
         }
     }
@@ -48,10 +52,19 @@ class CachingDigitsProvider(
 
 fun fftSingle(input: DigitsProvider, i: Int): Int {
     var sum = 0
-    (1..input.length).forEach {
+    val lcm = lcm(input.length / input.repeats, i * 4)
+    val noOfCycles = input.length / lcm
+    if (noOfCycles > 0) {
+        (1..lcm).forEach {
+            if ((it / i) % 4 == 1) sum += noOfCycles * input[it]
+            if ((it / i) % 4 == 3) sum -= noOfCycles * input[it]
+        }
+    }
+    (1..input.length % lcm).forEach {
         if ((it / i) % 4 == 1) sum += input[it]
         if ((it / i) % 4 == 3) sum -= input[it]
     }
+
     return when {
         sum > 0 -> sum % 10
         sum < 0 -> (-sum) % 10

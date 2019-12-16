@@ -1,7 +1,7 @@
 package advent2019.day16
 
+import advent2019.readAllLines
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import kotlin.test.expect
@@ -56,8 +56,40 @@ internal class Day16KtTest {
     }
 
     @Test
-    internal fun testFftSingle() {
-//        expect()
+    internal fun testRepeated() {
+        expect("34389886592132718868384101444361") {
+            fftRepeat("69317163492948616931716349294861", 1, 10, 0, 32)
+        }
+        expect("34389886592132718868384101444361") {
+            fftRepeat("6931716349294861", 2, 10, 0, 32)
+        }
+    }
+
+    @Test
+    internal fun testRepeated2() {
+        expect("542132465648252") {
+            fftRepeat("432524325243252", 1, 10, 0, 15)
+        }
+        expect("542132465648252") {
+            fftRepeat("43252", 3, 10, 0, 15)
+        }
+    }
+
+    @Test
+    internal fun testRepeated3() {
+        expect("403893683670591085908457663043256980782088917468785168225711620724036") {
+            fftRepeat("432528237465328745290364325282374653287452903643252823746532874529036", 1, 10, 0, 69)
+        }
+        expect("403893683670591085908457663043256980782088917468785168225711620724036") {
+            fftRepeat("43252823746532874529036", 3, 10, 0, 69)
+        }
+    }
+
+    @Test
+    internal fun testPart1Input() {
+        expect("73127523") {
+            fft(readAllLines("input-2019-16.txt").single(), 100).take(8)
+        }
     }
 
 }
