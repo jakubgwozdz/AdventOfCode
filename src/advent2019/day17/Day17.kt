@@ -5,13 +5,10 @@ import advent2019.intcode.Memory
 import advent2019.intcode.parse
 import advent2019.logWithTime
 import advent2019.readAllLines
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
 import java.math.BigInteger.ZERO
 
@@ -25,7 +22,7 @@ fun main() {
     val program1 = parse(input)
     val map = drawMap(program1)
 
-    part1(map)
+    alignment(map)
         .also { logWithTime("part 1: $it") }
 
     val program2 = parse(input).also { it[0.toBigInteger()] = 2.toBigInteger() }
@@ -57,32 +54,38 @@ suspend fun SendChannel<BigInteger>.writeln(msg: String) {
     send('\n'.toInt().toBigInteger())
 }
 
-private fun part1(map: List<String>): Int {
-    val intersections = (1..map.size - 2)
-        .flatMap { y ->
-            (1..map[y].length - 2).map { x -> y to x }
-        }
-        .filter { (y, x) -> map[y][x] == '#' && map[y - 1][x] == '#' && map[y][x - 1] == '#' && map[y + 1][x] == '#' && map[y][x + 1] == '#' }
+private fun List<String>.innerIndices() = (1..size - 2)
+    .flatMap { y -> (1..this[y].length - 2).map { x -> y to x } }
 
-    val alignment = intersections.map { (y, x) -> y * x }.sum()
-    return alignment
-}
+private fun List<String>.hasIntersection(row: Int, column: Int): Boolean =
+    (this[row][column] == '#'
+            && this[row - 1][column] == '#' && this[row][column - 1] == '#'
+            && this[row + 1][column] == '#' && this[row][column + 1] == '#')
+
+private fun alignment(map: List<String>): Int =
+    map.innerIndices()
+        .filter { (row, column) -> map.hasIntersection(row, column) }
+        .map { (row, column) -> row * column }
+        .sum()
 
 @FlowPreview
 @ExperimentalStdlibApi
 private fun drawMap(program: Memory): List<String> = runBlocking {
-    val outChannel = Channel<BigInteger>(Channel.UNLIMITED)
-    val job = launch {
-        Computer("ASCII", program, Channel(), outChannel).run()
+    val inChannel = Channel<BigInteger>()
+    val outChannel = Channel<BigInteger>()
+    val computer = Computer("ASCII", program, inChannel, outChannel)
+    launch {
+        computer.run()
+        inChannel.close()
+        outChannel.close()
     }
-    val flow = outChannel.consumeAsFlow()
+    outChannel.consumeAsFlow()
         .map { it.toInt().toChar() }
-
-    job.join()
-    outChannel.close()
-    flow.toList().toCharArray().concatToString().lines()
+        .fullLines()
+        .toList()
 }
 
+@ExperimentalCoroutinesApi
 @FlowPreview
 private fun moveRobot(
     program: Memory,
@@ -90,28 +93,30 @@ private fun moveRobot(
     functionA: String,
     functionB: String,
     functionC: String
-): BigInteger = runBlocking {
-    val inChannel = Channel<BigInteger>()
-    val outChannel = Channel<BigInteger>()
-    launch {
-        Computer("ASCII", program, inChannel, outChannel).run()
-        inChannel.close()
-        outChannel.close()
-    }
-
+): BigInteger {
     var lastData = ZERO!!
-    outChannel.consumeAsFlow()
-        .onEach { lastData = it }
-        .map { it.toInt().toChar() }
-        .fullLines()
-        .collect {
-            println(it)
-            if (it == "Main:") inChannel.writeln(mainRoutine)
-            if (it == "Function A:") inChannel.writeln(functionA)
-            if (it == "Function B:") inChannel.writeln(functionB)
-            if (it == "Function C:") inChannel.writeln(functionC)
-            if (it == "Continuous video feed?") inChannel.writeln("n")
+    return runBlocking {
+        val inChannel = Channel<BigInteger>()
+        val outChannel = Channel<BigInteger>()
+        val computer = Computer("ASCII", program, inChannel, outChannel)
+        launch {
+            computer.run()
+            inChannel.close()
+            outChannel.close()
         }
-
-    lastData
+        outChannel.consumeAsFlow()
+            .onEach { lastData = it }
+            .map { it.toInt().toChar() }
+            .fullLines()
+            .onEach {
+                println(it)
+                if (it == "Main:") inChannel.writeln(mainRoutine)
+                if (it == "Function A:") inChannel.writeln(functionA)
+                if (it == "Function B:") inChannel.writeln(functionB)
+                if (it == "Function C:") inChannel.writeln(functionC)
+                if (it == "Continuous video feed?") inChannel.writeln("n")
+            }
+            .collect()
+            .let { lastData }
+    }
 }
