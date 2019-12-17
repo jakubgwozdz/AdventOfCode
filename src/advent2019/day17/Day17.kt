@@ -22,7 +22,8 @@ fun main() {
     val input = readAllLines("input-2019-17.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
-    val map = drawMap(parse(input))
+    val program1 = parse(input)
+    val map = drawMap(program1)
 
     part1(map)
         .also { logWithTime("part 1: $it") }
@@ -34,57 +35,18 @@ fun main() {
     val functionB = "R,12,L,10,L,4,L,6"
     val functionC = "L,10,L,10,L,4,L,6"
 
-    runBlocking {
-        val inChannel = Channel<BigInteger>()
-        val outChannel = Channel<BigInteger>(Channel.UNLIMITED)
-        val job = launch {
-            Computer("ASCII", program2, inChannel, outChannel).run()
-            inChannel.close()
-            outChannel.close()
-        }
-        val linesChannel = Channel<String>()
-        val resultChannel = Channel<BigInteger>()
-
-        launch {
-            var lastData = ZERO
-            outChannel.consumeAsFlow()
-                .onEach { lastData = it }
-                .map { it.toInt().toChar() }
-                .fullLines()
-                .collect { linesChannel.send(it) }
-
-            linesChannel.close()
-            resultChannel.send(lastData)
-        }
-
-        linesChannel.consumeAsFlow()
-            .collect {
-                println(it)
-                if (it == "Main:") inChannel.writeln(mainRoutine)
-                if (it == "Function A:") inChannel.writeln(functionA)
-                if (it == "Function B:") inChannel.writeln(functionB)
-                if (it == "Function C:") inChannel.writeln(functionC)
-                if (it == "Continuous video feed?") inChannel.writeln("n")
-            }
-
-        job.join()
-
-        resultChannel.receive()
-//        o.last()
-    }
+    moveRobot(program2, mainRoutine, functionA, functionB, functionC)
         .also { logWithTime("part 2: $it") }
 }
 
-private fun Flow<Char>.fullLines(): Flow<String> {
-    return flow {
-        val buffer = mutableListOf<Char>()
-        collect { v ->
-            when (v) {
-                '\n' -> buildString(buffer.size) { buffer.forEach { append(it) } }
-                    .also { emit(it) }
-                    .also {buffer.clear()}
-                else -> buffer.add(v)
-            }
+
+@Suppress("BlockingMethodInNonBlockingContext")
+private fun Flow<Char>.fullLines(): Flow<String> = flow {
+    val builder = StringBuilder()
+    collect {
+        when (it) {
+            '\n' -> emit(builder.toString()).also { builder.clear() }
+            else -> builder.append(it)
         }
     }
 }
@@ -108,19 +70,48 @@ private fun part1(map: List<String>): Int {
 
 @FlowPreview
 @ExperimentalStdlibApi
-private fun drawMap(program: Memory): List<String> {
-
-    val map = runBlocking {
-        val outChannel = Channel<BigInteger>(Channel.UNLIMITED)
-        val job = launch {
-            Computer("ASCII", program, Channel(), outChannel).run()
-        }
-        val flow = outChannel.consumeAsFlow()
-            .map { it.toInt().toChar() }
-
-        job.join()
-        outChannel.close()
-        flow.toList().toCharArray().concatToString().lines()
+private fun drawMap(program: Memory): List<String> = runBlocking {
+    val outChannel = Channel<BigInteger>(Channel.UNLIMITED)
+    val job = launch {
+        Computer("ASCII", program, Channel(), outChannel).run()
     }
-    return map
+    val flow = outChannel.consumeAsFlow()
+        .map { it.toInt().toChar() }
+
+    job.join()
+    outChannel.close()
+    flow.toList().toCharArray().concatToString().lines()
+}
+
+@FlowPreview
+private fun moveRobot(
+    program: Memory,
+    mainRoutine: String,
+    functionA: String,
+    functionB: String,
+    functionC: String
+): BigInteger = runBlocking {
+    val inChannel = Channel<BigInteger>()
+    val outChannel = Channel<BigInteger>()
+    launch {
+        Computer("ASCII", program, inChannel, outChannel).run()
+        inChannel.close()
+        outChannel.close()
+    }
+
+    var lastData = ZERO!!
+    outChannel.consumeAsFlow()
+        .onEach { lastData = it }
+        .map { it.toInt().toChar() }
+        .fullLines()
+        .collect {
+            println(it)
+            if (it == "Main:") inChannel.writeln(mainRoutine)
+            if (it == "Function A:") inChannel.writeln(functionA)
+            if (it == "Function B:") inChannel.writeln(functionB)
+            if (it == "Function C:") inChannel.writeln(functionC)
+            if (it == "Continuous video feed?") inChannel.writeln("n")
+        }
+
+    lastData
 }
