@@ -44,27 +44,27 @@ fun main() {
 
         val outJob = launch {
             var lastData = ZERO
-            val chF = outChannel.consumeAsFlow()
+            outChannel.consumeAsFlow()
                 .onEach { lastData = it }
                 .map { it.toInt().toChar() }
-
-            val linesFlow = flow {
-                val buffer = mutableListOf<Char>()
-                chF.collect { v ->
-                    buffer.add(v)
-                    if (v == '\n') {
-                        buildString(buffer.size) { buffer.forEach { append(it) } }
-                            .also { emit(it) }
+                .let { chF ->
+                    flow {
+                        val buffer = mutableListOf<Char>()
+                        chF.collect { v ->
+                            buffer.add(v)
+                            if (v == '\n') {
+                                buildString(buffer.size) { buffer.forEach { append(it) } }
+                                    .also { emit(it) }
 //                                emit(buffer.toCharArray().concatToString())
-                        buffer.clear()
+                                buffer.clear()
+                            }
+                        }
                     }
                 }
-            }
                 .onEach { print(it) }
                 .collect()
-            resultChannel.send(lastData)
 
-            resultChannel.close()
+            resultChannel.send(lastData)
         }
 
 //        linesChannel.consumeAsFlow()
