@@ -5,10 +5,13 @@ import advent2019.intcode.Memory
 import advent2019.intcode.parse
 import advent2019.logWithTime
 import advent2019.readAllLines
-import kotlinx.coroutines.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
 import java.math.BigInteger.ZERO
 
@@ -42,42 +45,27 @@ fun main() {
         val linesChannel = Channel<String>()
         val resultChannel = Channel<BigInteger>()
 
-        val outJob = launch {
+        launch {
             var lastData = ZERO
             outChannel.consumeAsFlow()
                 .onEach { lastData = it }
                 .map { it.toInt().toChar() }
-                .let { chF ->
-                    flow {
-                        val buffer = mutableListOf<Char>()
-                        chF.collect { v ->
-                            buffer.add(v)
-                            if (v == '\n') {
-                                buildString(buffer.size) { buffer.forEach { append(it) } }
-                                    .also { emit(it) }
-//                                emit(buffer.toCharArray().concatToString())
-                                buffer.clear()
-                            }
-                        }
-                    }
-                }
-                .onEach { print(it) }
-                .collect()
+                .fullLines()
+                .collect { linesChannel.send(it) }
 
+            linesChannel.close()
             resultChannel.send(lastData)
         }
 
-//        linesChannel.consumeAsFlow()
-//            .onEach { }
-        inChannel.writeln(mainRoutine)
-        delay(10)
-        inChannel.writeln(functionA)
-        delay(10)
-        inChannel.writeln(functionB)
-        delay(10)
-        inChannel.writeln(functionC)
-        delay(10)
-        inChannel.writeln("n")
+        linesChannel.consumeAsFlow()
+            .collect {
+                println(it)
+                if (it == "Main:") inChannel.writeln(mainRoutine)
+                if (it == "Function A:") inChannel.writeln(functionA)
+                if (it == "Function B:") inChannel.writeln(functionB)
+                if (it == "Function C:") inChannel.writeln(functionC)
+                if (it == "Continuous video feed?") inChannel.writeln("n")
+            }
 
         job.join()
 
@@ -85,6 +73,20 @@ fun main() {
 //        o.last()
     }
         .also { logWithTime("part 2: $it") }
+}
+
+private fun Flow<Char>.fullLines(): Flow<String> {
+    return flow {
+        val buffer = mutableListOf<Char>()
+        collect { v ->
+            when (v) {
+                '\n' -> buildString(buffer.size) { buffer.forEach { append(it) } }
+                    .also { emit(it) }
+                    .also {buffer.clear()}
+                else -> buffer.add(v)
+            }
+        }
+    }
 }
 
 suspend fun SendChannel<BigInteger>.writeln(msg: String) {
@@ -120,6 +122,5 @@ private fun drawMap(program: Memory): List<String> {
         outChannel.close()
         flow.toList().toCharArray().concatToString().lines()
     }
-        .also { map -> map.forEach { logWithTime(it) } }
     return map
 }
