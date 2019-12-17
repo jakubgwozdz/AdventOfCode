@@ -7,9 +7,7 @@ import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
@@ -27,11 +25,37 @@ fun main() {
 
     val program2 = parse(input).also { it[0.toBigInteger()] = 2.toBigInteger() }
 
-    val mainRoutine = "A,B,C,A,B,C,A,C,B,C,C,A,C"
+    val mainRoutine = "A,B,A,B,A,C,B,C,A,C"
     val functionA = "L,6,R,12,L,6"
-    val functionB = "R,2,R,R"
+    val functionB = "R,12,L,10,L,4,L,6"
     val functionC = "L,10,L,10,L,4,L,6"
 
+    runBlocking {
+        val inChannel = Channel<BigInteger>(Channel.UNLIMITED)
+        val outChannel = Channel<BigInteger>(Channel.UNLIMITED)
+        val job = launch {
+            Computer("ASCII", program2, inChannel, outChannel).run()
+        }
+        val o = mutableListOf<BigInteger>()
+        val flow = outChannel.consumeAsFlow()
+            .onEach { println(it.toInt().toChar()) }
+            .collect { o.add(it) }
+
+        mainRoutine.forEach { inChannel.send(it.toInt().toBigInteger()) }
+        inChannel.send(10.toBigInteger())
+        functionA.forEach { inChannel.send(it.toInt().toBigInteger()) }
+        inChannel.send(10.toBigInteger())
+        functionB.forEach { inChannel.send(it.toInt().toBigInteger()) }
+        inChannel.send(10.toBigInteger())
+        functionC.forEach { inChannel.send(it.toInt().toBigInteger()) }
+        inChannel.send(10.toBigInteger())
+        inChannel.send('n'.toInt().toBigInteger())
+        inChannel.send(10.toBigInteger())
+        job.join()
+        outChannel.close()
+        o
+    }
+        .also { logWithTime("part 2: $it") }
 
 }
 
