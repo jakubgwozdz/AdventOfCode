@@ -41,8 +41,6 @@ class CachingDigitsProvider(
     val input: DigitsProvider,
     override val repeats: Int = 1, val op: (Int) -> Int
 ) : DigitsProvider {
-    //    private val cache = mutableMapOf<Int, Int>()
-//    override fun get(i: Int) = cache.computeIfAbsent((i - 1) % cycle + 1) { k -> op(k) }
     private val cache = (1..input.length).map { op(it) }
     override fun get(i: Int) = cache[(i - 1) % cycle]
 

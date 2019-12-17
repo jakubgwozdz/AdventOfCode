@@ -5,13 +5,17 @@ import advent2019.intcode.Memory
 import advent2019.intcode.parse
 import advent2019.logWithTime
 import advent2019.readAllLines
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
+import java.math.BigInteger.ZERO
 
+@ExperimentalCoroutinesApi
 @FlowPreview
 @ExperimentalStdlibApi
 fun main() {
@@ -31,32 +35,45 @@ fun main() {
     val functionC = "L,10,L,10,L,4,L,6"
 
     runBlocking {
-        val inChannel = Channel<BigInteger>(Channel.UNLIMITED)
+        val inChannel = Channel<BigInteger>()
         val outChannel = Channel<BigInteger>(Channel.UNLIMITED)
         val job = launch {
             Computer("ASCII", program2, inChannel, outChannel).run()
+            inChannel.close()
+            outChannel.close()
         }
-        val o = mutableListOf<BigInteger>()
-        val flow = outChannel.consumeAsFlow()
-            .onEach { println(it.toInt().toChar()) }
-            .collect { o.add(it) }
+        var o = ZERO
 
-        mainRoutine.forEach { inChannel.send(it.toInt().toBigInteger()) }
-        inChannel.send(10.toBigInteger())
-        functionA.forEach { inChannel.send(it.toInt().toBigInteger()) }
-        inChannel.send(10.toBigInteger())
-        functionB.forEach { inChannel.send(it.toInt().toBigInteger()) }
-        inChannel.send(10.toBigInteger())
-        functionC.forEach { inChannel.send(it.toInt().toBigInteger()) }
-        inChannel.send(10.toBigInteger())
-        inChannel.send('n'.toInt().toBigInteger())
-        inChannel.send(10.toBigInteger())
+        val outJob = launch {
+            val buffer = mutableListOf<Char>()
+            val flow = outChannel.consumeAsFlow()
+                .onEach { o = it }
+//                .map { it.toInt().toChar() }
+//                .scan(StringBuilder()) { acc, c -> acc.append(c) }
+//                .filter { it.endsWith(10.toChar()) }
+//                .map { it.toString() }
+//                .onEach { println(it) }
+            flow.collect()
+        }
+
+        inChannel.writeln(mainRoutine)
+        inChannel.writeln(functionA)
+        inChannel.writeln(functionB)
+        inChannel.writeln(functionC)
+        inChannel.writeln("n")
+
         job.join()
-        outChannel.close()
+        outJob.join()
         o
+//        o.last()
     }
         .also { logWithTime("part 2: $it") }
+}
 
+suspend fun SendChannel<BigInteger>.writeln(msg: String) {
+    println(msg)
+    msg.map { it.toInt().toBigInteger() }.forEach { send(it) }
+    send(10.toBigInteger()) // '\r'
 }
 
 private fun part1(map: List<String>): Int {
