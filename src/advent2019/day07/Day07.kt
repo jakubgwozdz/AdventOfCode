@@ -15,16 +15,14 @@ fun main() {
     val programStr = readAllLines("input-2019-07.txt").first()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
-    // part 1
-    val permutations = permutations(5).map { it.map { i -> i.toBigInteger() } }
-
-    permutations
+    permutations(5)
+        .map { it.map { i -> i.toBigInteger() } }
         .map { it to run(programStr, it) }
         .maxBy { it.second }
         .also { logWithTime("task1: $it") }
 
-    permutations
-        .map { it.map { i -> i + 5.toBigInteger() } }
+    permutations(5)
+        .map { it.map { i -> i.toBigInteger() + 5.toBigInteger() } }
         .map { it to run2(programStr, it) }
         .maxBy { it.second }
         .also { logWithTime("task2: $it") }
