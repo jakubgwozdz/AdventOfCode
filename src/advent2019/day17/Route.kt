@@ -86,17 +86,17 @@ fun findRoutine(scaffolding: Scaffolding): Pair<String, Triple<String, String, S
         .filter { it.asInput().length <= 20 }
         .reversed()
 
-    val possibleFunctionB: List<Movements> = (1..5)
+    val possibleFunctionB: List<Movements> = (0..5)
         .flatMap { s -> (0 until path.size - s).map { path.subList(it, it + s) } }
+        .reversed()
         .distinct()
         .filter { it.asInput().length <= 20 }
-        .reversed() + emptyList()
 
-    val possibleFunctionC: List<Movements> = (1..5)
-        .flatMap { s -> (0 until path.size - s).map { path.subList(it, it + s) }.reversed() }
+    val possibleFunctionC: List<Movements> = (0..5)
+        .flatMap { s -> (0 until path.size - s).map { path.subList(it, it + s) } }
+        .reversed()
         .distinct()
         .filter { it.asInput().length <= 20 }
-        .reversed() + emptyList()
 
     return possibleFunctionA.asSequence()
         .map { a -> (possibleFunctionB).map { a to it } }
@@ -104,6 +104,7 @@ fun findRoutine(scaffolding: Scaffolding): Pair<String, Triple<String, String, S
         .map { (a, b) -> possibleFunctionC.asSequence().map { Triple(a, b, it) } }
         .flatten()
         .filter { it.first != it.second && it.second != it.third && it.third != it.first }
+        .filter { path.endsWith(it.third) || path.endsWith(it.second) || path.endsWith(it.first) }
         .onEach { logWithTime("${it.first.asInput()} | ${it.second.asInput()} | ${it.third.asInput()}") }
         .flatMap { functions ->
 
@@ -116,10 +117,12 @@ fun findRoutine(scaffolding: Scaffolding): Pair<String, Triple<String, String, S
                 }
             }
 
-            permutationsWithRepetitions(4, 9)
+            permutationsWithRepetitions(4, 10)
                 .map { p -> p.map { 'A' + it - 1 } }
                 .map { p -> p.filter { it in 'A'..'C' } }
-                .map { p -> listOf('A') + p }
+                .filter { it.size > 1 }
+                .filter { it[0] == 'A' && (it[1] == 'A' || it[1] == 'B') }
+                .filter { val l = movementsOp.invoke(it.last()) ; path.takeLast(l.size) == l }
                 .filter { p -> p.map(movementsOp).sumBy { it.size } == path.size }
                 .filter {
                     it.asSequence()
@@ -140,3 +143,5 @@ fun findRoutine(scaffolding: Scaffolding): Pair<String, Triple<String, String, S
 fun <T> Sequence<T>.sameAs(o: Sequence<T>): Boolean {
     return zip(o).all { (a, b) -> a == b }
 }
+
+fun <T> List<T>.endsWith(o: List<T>): Boolean = takeLast(o.size) == o
