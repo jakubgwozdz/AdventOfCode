@@ -14,31 +14,34 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
 import java.math.BigInteger.ZERO
+import kotlin.system.measureTimeMillis
 
 @ExperimentalCoroutinesApi
 @FlowPreview
 @ExperimentalStdlibApi
 fun main() {
-    val input = readAllLines("input-2019-17.txt").single()
-        .also { logWithTime("Program length (chars): ${it.length}") }
+    measureTimeMillis {
+        val input = readAllLines("input-2019-17.txt").single()
+            .also { logWithTime("Program length (chars): ${it.length}") }
 
-    val program1 = parse(input)
-    val scaffolding = Scaffolding(drawMap(program1).also { l -> l.forEach { logWithTime(it) } })
+        val program1 = parse(input)
+        val scaffolding = Scaffolding(drawMap(program1).also { l -> l.forEach { logWithTime(it) } })
 
-    alignment(scaffolding)
-        .also { logWithTime("part 1: $it") }
+        alignment(scaffolding)
+            .also { logWithTime("part 1: $it") }
 
-    val (mainRoutine, functions) = findRoutine(scaffolding)
-    logWithTime("mainRoutine: $mainRoutine")
-    val (functionA, functionB, functionC) = functions
-    logWithTime("functionA: $functionA")
-    logWithTime("functionB: $functionB")
-    logWithTime("functionC: $functionC")
+        val (mainRoutine, functions) = findRoutine(scaffolding)
+        logWithTime("mainRoutine: $mainRoutine")
+        val (functionA, functionB, functionC) = functions
+        logWithTime("functionA: $functionA")
+        logWithTime("functionB: $functionB")
+        logWithTime("functionC: $functionC")
 
-    val program2 = parse(input).also { it[0.toBigInteger()] = 2.toBigInteger() }
+        val program2 = parse(input).also { it[0.toBigInteger()] = 2.toBigInteger() }
 
-    moveRobot(program2, mainRoutine, functionA, functionB, functionC)
-        .also { logWithTime("part 2: $it") }
+        moveRobot(program2, mainRoutine, functionA, functionB, functionC)
+            .also { logWithTime("part 2: $it") }
+    }.also { println("${it}ms") }
 }
 
 

@@ -17,7 +17,7 @@ internal class Day17KtTest {
             else s2++.also { if (s2 > 5) s2++ }.also { println("seq2: $it") }
         }
 
-        println(seq1.sameAs(seq2))
+        println(seq1.beginsSameAs(seq2))
 
     }
 }
