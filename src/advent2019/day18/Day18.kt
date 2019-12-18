@@ -4,7 +4,6 @@ import advent2019.day15.plus
 import advent2019.logWithTime
 import advent2019.readAllLines
 import java.math.BigInteger
-import kotlin.system.exitProcess
 
 
 typealias Location = Pair<Int, Int>
@@ -34,16 +33,32 @@ fun Maze.canGoThrough(where: Location, keys: Set<Char> = emptySet()) = where.fir
         && where.second in this[where.first].indices
         && this[where].let { it != '#' && !(it.isUpperCase() && it.toLowerCase() !in keys) }
 
-class Cache() {
-    val c: MutableMap<Triple<Location, Location, Set<Char>>, Int> = mutableMapOf()
-    val d: MutableMap<Pair<Location, Location>, Int> = mutableMapOf() // direct, no doors between
+class Cache<T> {
+    val c: MutableMap<Triple<T, T, String>, Int> = mutableMapOf()
+    val d: MutableMap<Pair<T, T>, Int> = mutableMapOf() // direct, no doors between
 
-    fun compute(start: Location, end: Location, ownedKeys: Set<Char>, op: () -> Int?): Int? {
+    var hit = 0
+    var miss = 0
+    var lastReport = System.currentTimeMillis() - 10000
+
+    fun compute(start: T, end: T, ownedKeys: Set<Char>, op: () -> Int?): Int? {
         if (start == end) return 0
-        if (start > end) return compute(end, start, ownedKeys, op)
+        if (start is Char && end is Char) {
+            if (start > end) return compute(end, start, ownedKeys, op)
+        }
         return d[start to end]
-            ?: Triple(start, end, ownedKeys).let { t ->
-                return c[t] ?: op()?.also { c[t] = it }
+            ?.also { hit++ }
+            ?: Triple(start, end, ownedKeys.sorted().joinToString("")).let { t ->
+                miss++
+                return c[t] ?: op()?.also {
+                    c[t] = it
+                }
+//                    .also {
+//                        if (System.currentTimeMillis() - 10000 > lastReport) {
+//                            logWithTime("Cache hits $hit, misses $miss, size ${c.size}")
+//                            lastReport = System.currentTimeMillis()
+//                        }
+//                    }
             }
     }
 
@@ -70,38 +85,43 @@ fun moves(maze: Maze): Int {
     logWithTime("keys: $keys")
     logWithTime("doors: $doors")
 
-    val cache = Cache()
-    keys.values.flatMap { a -> keys.values.map { b -> a to b } }
+    val cache = Cache<Char>()
+    keys.keys.flatMap { a -> keys.keys.map { b -> a to b } }
         .filter { (a, b) -> a < b }
-        .mapNotNull { (a, b) -> shortestDistanceTo(a, b, maze, emptySet(), Cache())?.let { (a to b) to it } }
+        .mapNotNull { (a, b) -> shortestDistanceTo(keys[a]!!, keys[b]!!, maze, emptySet())?.let { (a to b) to it } }
         .forEach { (pair, distance) -> cache.d[pair] = distance.also { logWithTime("$pair=$distance") } }
 
-    return pathToAllKeys(pos, maze, keys, emptySet(), cache)
+    return pathToAllKeys('@', maze, keys, emptySet(), cache)
         .also { logWithTime("$it") }
         .let { it.sumBy { (_, l) -> l } }
 
 }
 
-var maxc = 1000
+//var maxc = 1000
 fun pathToAllKeys(
-    start: Location,
+    start: Char,
     maze: Maze,
     keys: Map<Char, Location>,
     ownedKeys: Set<Char> = emptySet(),
-    cache: Cache
+    cache: Cache<Char>
 ): List<Pair<Char, Int>> {
-    maxc--
-    if (maxc ==0) exitProcess(-2)
-    val possible = keys
+//    maxc--
+//    if (maxc ==0) exitProcess(-2)
+    val possible: Map<Char, Int> = keys
         .filter { it.key != '@' }
         .filter { it.key !in ownedKeys }
-        .mapNotNull { (k, l) ->
-            shortestDistanceTo(start, l, maze, ownedKeys, cache)
-                ?.let { k to it }
-                .also { logWithTime("$k with shortest from $start to $l with ownedKeys=$ownedKeys) = ${it?.second}") }
+        .mapNotNull { (end, l) ->
+            cache.compute(start, end, ownedKeys) {
+                shortestDistanceTo(keys[start]!!, keys[end]!!, maze, ownedKeys)
+            }
+                ?.let { end to it }
+                .also {
+                    if (ownedKeys.size >= keys.size)
+                        logWithTime("$end with shortest from $start to $l with ownedKeys=$ownedKeys) = ${it?.second}")
+                }
         }.toMap()
     return possible
-        .map { (k, len) -> listOf(k to len) + pathToAllKeys(keys[k]!!, maze, keys, ownedKeys + k, cache) }
+        .map { (k, len) -> listOf(k to len) + pathToAllKeys(k, maze, keys, ownedKeys + k, cache) }
         .minBy { it.sumBy { (k, l) -> l } }
         .orEmpty()
 
@@ -135,7 +155,7 @@ fun shortestDistanceTo(
     end: Location,
     maze: List<String>,
     ownedKeys: Set<Char>,
-    cache: Cache,
+    cache: Cache<Location> = Cache(),
     visited: List<Location> = emptyList()
 ): Int? {
     return Direction.values()
