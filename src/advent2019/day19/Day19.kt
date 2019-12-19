@@ -14,20 +14,20 @@ fun main() {
     val input = readAllLines("input-2019-19.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
-    (0 until 50).flatMap { y ->
-        (0 until 50).map { x ->
-            call(input, x, y)
+    var scan = 0..0
+    (0 until 50).map { y ->
+        repeat(scan.first) { print(" ") }
+        val newLine = scan.map { x ->
+            BigInteger.ONE == call(input, x, y)
                 .also { print(it) }
-        }.also { println() }
-    }
-        .count { o -> o == BigInteger.ONE }
+        }
+            .also { println() }
+        val result = if (newLine.none { it }) scan.last + 1..scan.last
+        else scan.first + newLine.indexOfFirst { it }..scan.first + newLine.indexOfLast { it }
+        scan = (if (result.isEmpty()) scan.first else result.first)..result.last + 1
+        result
+    }.sumBy { it.count() }
         .also { logWithTime("part1: $it") }
-
-    var p = 0 to 0
-//    (0 until 50).flatMap { y ->
-//        val s0 =
-//
-//    }
 
 }
 
