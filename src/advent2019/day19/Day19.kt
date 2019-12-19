@@ -14,11 +14,11 @@ fun main() {
     val input = readAllLines("input-2019-19.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
-    var lastY = -1
-    var lastResult =  0 until 0
+    var last = -1 to (0 until 0)
 
     var scan = 0..0
     (0 until 50).map { y ->
+        val lastResult = last.second
         repeat(scan.first) { print(" ") }
         val result = if (lastResult.count() < 2) {
             val newLine = scan.map { x ->
@@ -39,8 +39,7 @@ fun main() {
         }
 
         scan = (if (result.isEmpty()) scan.first else result.first)..result.last + 1
-        lastResult = result
-        lastY = y
+        last = y to result
         result
             .also { println(" ; result = $result") }
     }.sumBy { it.count() }
