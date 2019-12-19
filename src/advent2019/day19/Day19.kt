@@ -22,6 +22,13 @@ fun main() {
     }
         .count { o -> o == BigInteger.ONE }
         .also { logWithTime("part1: $it") }
+
+    var p = 0 to 0
+//    (0 until 50).flatMap { y ->
+//        val s0 =
+//
+//    }
+
 }
 
 fun call(program: String, x: Int, y: Int): BigInteger =
