@@ -14,6 +14,8 @@ class Memory(initial: Map<BigInteger, BigInteger>) {
     }
 
     val size: BigInteger get() = map.keys.max() ?: ZERO
+
+    fun copy() = Memory(map.toMutableMap())
 }
 
 fun opcode(operation: BigInteger): Int = operation % 100

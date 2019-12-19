@@ -14,31 +14,33 @@ fun main() {
     val input = readAllLines("input-2019-19.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
+    val scanner = Scanner(input)
+
     var pivot = -1 to (0 until 0)
 
-    var nextScan = 0..0
     (0 until 50).map { y ->
         val lastResult = pivot.second
-        repeat(nextScan.first) { print(" ") }
-        val result = if (lastResult.count() < 2) {
-            val newLine = nextScan.map { x ->
-                call(input, x, y)
-                    .also { print(if (it) "#" else ".") }
+        repeat(lastResult.first) { print(" ") }
+        if (lastResult.count() < 2) {
+            var newStart = lastResult.first
+            val limit = 20
+            while (!scanner[newStart to y] && newStart < limit) newStart++
+            if (newStart == limit) (lastResult.first until lastResult.first).also { println(" ; empty") }
+            else {
+                var newEndExclusive = newStart + 1
+                while (scanner[newEndExclusive to y]) newEndExclusive++
+                pivot = (y to (newStart until newEndExclusive)).also { println(" ; pivot = $it") }
+                pivot.second
             }
-            if (newLine.none { it }) nextScan.last + 1..nextScan.last
-            else nextScan.first + newLine.indexOfFirst { it }..nextScan.first + newLine.indexOfLast { it }
         } else {
             var newStart = lastResult.first
-            while (!call(input, newStart, y).also { print(if (it) "#" else ".") }) newStart++
+            while (!scanner[newStart to y]) newStart++
             var newEnd = lastResult.last.coerceAtLeast(newStart)
             repeat(newEnd - newStart) { print(" ") }
-            while (call(input, newEnd + 1, y).also { print(if (it) "#" else ".") }) newEnd++
-            (newStart..newEnd)
+            while (scanner[newEnd + 1 to y]) newEnd++
+            pivot = (y to (newStart..newEnd)).also { println(" ; pivot = $it") }
+            pivot.second
         }
-
-        nextScan = (if (result.isEmpty()) nextScan.first else result.first)..result.last + 1
-        pivot = (y to result).also { println(" ; pivot = $it") }
-        result
     }.sumBy { it.count() }
         .also { logWithTime("part1: $it") }
 
@@ -46,12 +48,12 @@ fun main() {
     val h = 100
 
     var y = (pivot.first * w + pivot.second.first * h) / pivot.second.count()
-    var matching = 0 to 0
+    var matching: Pair<Int, Int>
 
     do {
-        var t = findFor(y, pivot, input)
+        val t = findFor(y, pivot, scanner)
         pivot = y to t
-        var b = findFor(y + h - 1, pivot, input)
+        val b = findFor(y + h - 1, pivot, scanner)
         pivot = y + h - 1 to b
         val ww = t.last + 1 - b.first
         println("$y: $t - $b ($ww)")
@@ -62,32 +64,39 @@ fun main() {
 
 }
 
-fun findFor(y: Int, pivot: Pair<Int, IntRange>, input: String): IntRange {
+fun findFor(y: Int, pivot: Pair<Int, IntRange>, scanner: Scanner): IntRange {
     val (py, pr) = pivot
     var first = pr.first * y / py
     var last = pr.last * y / py
-    while (!call(input, first, y)) first++
-    while (call(input, first - 1, y)) first--
+    while (!scanner[first to y]) first++
+    while (scanner[first - 1 to y]) first--
 
-    while (!call(input, last, y)) last--
-    while (call(input, last + 1, y)) last++
+    while (!scanner[last to y]) last--
+    while (scanner[last + 1 to y]) last++
     return first..last
 }
 
 
-fun call(program: String, x: Int, y: Int): Boolean =
-    runBlocking {
+class Scanner(program: String) {
 
-        val inChannel = Channel<BigInteger>()
-        val outChannel = Channel<BigInteger>()
-        val computer = Computer("BEAM", parse(program), inChannel, outChannel)
-        launch {
-            computer.run()
-            inChannel.close()
-            outChannel.close()
+    val rom = parse(program)
+
+    operator fun get(p: Pair<Int, Int>) = (call(p.first, p.second) == BigInteger.ONE)
+        .also { print(if (it) "#" else ".") }
+
+    fun call(x: Int, y: Int) =
+        runBlocking {
+
+            val inChannel = Channel<BigInteger>()
+            val outChannel = Channel<BigInteger>()
+            val computer = Computer("BEAM", rom.copy(), inChannel, outChannel)
+            launch {
+                computer.run()
+                inChannel.close()
+                outChannel.close()
+            }
+            inChannel.send(x.toBigInteger())
+            inChannel.send(y.toBigInteger())
+            outChannel.receive()
         }
-        inChannel.send(x.toBigInteger())
-        inChannel.send(y.toBigInteger())
-        outChannel.receive()
-//            .also { print("$x,$y=$it;") }
-    } == BigInteger.ONE
+}
