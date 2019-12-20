@@ -125,28 +125,33 @@ private fun findPortals(maze: Maze): Set<Portal> {
         .mapIndexed { y, s -> s.mapIndexed { x, c -> (y yx x) to c } }
         .flatten()
         .filter { it.second == '.' }
-        .flatMap { (l: Location, _) ->
-            Direction.values()
-                .filter { maze[l + it]?.isUpperCase() ?: false }
-                .map {
-                    it to when (it) {
-                        N -> "${maze[l + it + it]}${maze[l + it]}"
-                        S -> "${maze[l + it]}${maze[l + it + it]}"
-                        W -> "${maze[l + it + it]}${maze[l + it]}"
-                        E -> "${maze[l + it]}${maze[l + it + it]}"
-                    }
-                }
-                .map { (d, c) ->
-                    val outer = when (d) {
-                        N -> l.y < maze.size / 2
-                        S -> l.y > maze.size / 2
-                        W -> l.x < maze[l.y].length / 2
-                        E -> l.x > maze[l.y].length / 2
-                    }
-                    Portal(l, c, outer)
-                }
-        }
+        .flatMap { (l: Location, _) -> findPortalsForLocation(maze, l) }
         .toSet()
+}
+
+private fun findPortalsForLocation(
+    maze: Maze,
+    l: Location
+): List<Portal> {
+    return values()
+        .filter { maze[l + it]?.isUpperCase() ?: false }
+        .map {
+            it to when (it) {
+                N -> "${maze[l + it + it]}${maze[l + it]}"
+                S -> "${maze[l + it]}${maze[l + it + it]}"
+                W -> "${maze[l + it + it]}${maze[l + it]}"
+                E -> "${maze[l + it]}${maze[l + it + it]}"
+            }
+        }
+        .map { (d, c) ->
+            val outer = when (d) {
+                N -> l.y < maze.size / 2
+                S -> l.y > maze.size / 2
+                W -> l.x < maze[l.y].length / 2
+                E -> l.x > maze[l.y].length / 2
+            }
+            Portal(l, c, outer)
+        }
 }
 
 

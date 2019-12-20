@@ -1,6 +1,7 @@
 package advent2019.day20
 
 import advent2019.expectSetOf
+import advent2019.logWithTime
 import advent2019.maze.yx
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
@@ -169,12 +170,17 @@ RE....#.#                           #......RF
   #.......#.....#.#...#...............#...#  
   #############.#.#.###.###################  
                A O F   N                     
-               A A D   M                     """.drop(396).lines()
+               A A D   M                     """.drop(1).lines()
 
 
     @Test
     fun testPart2c() {
-        expect(26) { Donut(input3).shortestRecursive().sumBy { it.distance } }
+        expect(396) {
+            Donut(input3)
+//                .also { logWithTime("portals: ${it.portals}") }
+//                .also { logWithTime("paths: ${it.roads}") }
+                .shortestRecursive(logging = false).sumBy { it.distance }
+        }
     }
 
 
