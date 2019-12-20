@@ -4,7 +4,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalTime
 
-fun logWithTime(msg: String, op: String.()->String = {this}) {
+fun<T> logWithTime(msg: T, op: T.()->String = {"$this"}) {
     println("${LocalTime.now().toString().take(12).padEnd(12)}: ${msg.op()}")
 }
 
@@ -13,4 +13,4 @@ fun logWithTime(msg: List<Char>, op: String.()->String = {this}) {
 }
 
 fun readAllLines(fileName: String) = Files.readAllLines(Paths.get(fileName))
-    .map { it.trim() }
+    .map { it }

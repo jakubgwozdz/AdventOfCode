@@ -2,7 +2,6 @@ package advent2019.day18
 
 import org.junit.jupiter.api.Test
 import kotlin.test.expect
-import advent2019.day18.Direction.*
 
 internal class Day18KtTest {
 

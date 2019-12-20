@@ -1,37 +1,11 @@
 package advent2019.day18
 
-import advent2019.day15.plus
-import advent2019.logWithTime
-import advent2019.readAllLines
-import java.math.BigInteger
+import advent2019.*
+import advent2019.maze.*
 
 
-typealias Location = Pair<Int, Int>
-typealias Delta = Pair<Int, Int>
-
-enum class Direction(val code: BigInteger, val delta: Delta) {
-    N(1.toBigInteger(), -1 to 0),
-    S(2.toBigInteger(), 1 to 0),
-    W(3.toBigInteger(), 0 to -1),
-    E(4.toBigInteger(), 0 to 1)
-}
-
-operator fun Location.plus(d: Direction) = this + d.delta
-operator fun Location.plus(delta: Delta) = first + delta.first to second + delta.second
-operator fun Location.minus(what: Location) = Direction.values().single { this == what + it }
-
-fun List<Location>.from(pos: Location): List<Direction> {
-    var acc = pos
-    return map { n -> (n - acc).also { acc = n } }
-}
-
-typealias Maze = List<String>
-
-operator fun Maze.get(what: Location) = this[what.first][what.second]
-
-fun Maze.canGoThrough(where: Location, keys: Set<Char> = emptySet()) = where.first in 0 until size
-        && where.second in this[where.first].indices
-        && this[where].let { it != '#' && !(it.isUpperCase() && it.toLowerCase() !in keys) }
+fun Maze.canGoThrough(where: Location, keys: Set<Char> = emptySet()) =
+    this[where].let { it != null && it != '#' && !(it.isUpperCase() && it.toLowerCase() !in keys) }
 
 class Cache<T> {
     val c: MutableMap<Triple<T, T, String>, Int> = mutableMapOf()
@@ -64,17 +38,12 @@ class Cache<T> {
 
 }
 
-private operator fun Location.compareTo(that: Location): Int {
-    return this.first.compareTo(that.first)
-        .let { if (it == 0) this.second.compareTo(that.second) else it }
-}
-
 
 fun moves(maze: Maze): Int {
 
     maze.forEach { logWithTime(it) }
     val mazeAsMap: Map<Location, Char> =
-        maze.mapIndexed { y: Int, s: String -> s.mapIndexed { x: Int, c: Char -> (y to x) to c } }
+        maze.mapIndexed { y: Int, s: String -> s.mapIndexed { x: Int, c: Char -> (y yx x) to c } }
             .flatten()
             .toMap()
     val pos = mazeAsMap.entries.single { (l, c) -> c == '@' }.key
