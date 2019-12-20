@@ -2,19 +2,33 @@ package advent2019.day20
 
 import advent2019.logWithTime
 import advent2019.maze.*
+import advent2019.maze.Direction.*
 import advent2019.readAllLines
 
-data class Portal(val location: Location, val code: String) : Comparable<Portal> {
-    override fun toString(): String = "$code:$location"
+data class Portal(val location: Location, val code: String, val outer: Boolean) : Comparable<Portal> {
+    override fun toString(): String = "$code:$location:${if (outer) "Ȯ" else "ⱺ"}"
     override fun compareTo(other: Portal) = comparator.compare(this, other)
 
     companion object {
         val comparator: Comparator<Portal> = compareBy({ it.code }, { it.location })
     }
+
+    fun levelChangeFrom(other: Portal): Int {
+        return if (outer == other.outer || code == other.code) 0 else if (outer) -1 else 1
+    }
 }
 
-data class Connection(val portal1: Portal, val portal2: Portal, val distance: Int) : Comparable<Connection> {
-    override fun toString(): String = "$portal1->$portal2=$distance"
+data class Connection(
+    val portal1: Portal,
+    val portal2: Portal,
+    val distance: Int,
+    val levelChange: Int = portal2.levelChangeFrom(portal1)
+) : Comparable<Connection> {
+    override fun toString(): String = "$portal1->$portal2=$distance${when {
+        levelChange < 0 -> "⇓"
+        levelChange > 0 -> "⇑"
+        else -> "↔"
+    }}"
 
     override fun compareTo(other: Connection) = comparator.compare(this, other)
 
@@ -43,7 +57,38 @@ class Donut(val maze: Maze) {
             accOp = { listOf(start) },
             adderOp = { l, e -> l + e },
             selector = {
-                connectionsBetweenPortals(it).also { if (logging) logWithTime("Calculating $it") }.sumBy(Connection::distance)
+                connectionsBetweenPortals(it).also { if (logging) logWithTime("Calculating $it") }
+                    .sumBy(Connection::distance)
+            },
+            waysOutOp = { p ->
+                roads
+                    .filter { p == it.portal1 }
+                    .map { it.portal2 }
+                    .also { if (logging) logWithTime("WaysOut for $p: $it") }
+            }
+        )
+            ?.let { connectionsBetweenPortals(it) }
+            .also { if (logging) logWithTime("AA->ZZ: found") }
+        return shortest?.toList() ?: error("Not found")
+    }
+
+    fun shortestRecursive(
+        start: Portal = this.start,
+        end: Portal = this.end,
+        logging: Boolean = false
+    ): List<Connection> {
+
+        val shortest = shortest<Portal, List<Portal>>(
+            start = start,
+            end = end,
+            logging = logging,
+            cache = NoCache(logging),
+            visited = emptyList(),
+            accOp = { listOf(start) },
+            adderOp = { l, e -> l + e },
+            selector = {
+                connectionsBetweenPortals(it).also { if (logging) logWithTime("Calculating $it") }
+                    .sumBy(Connection::distance)
             },
             waysOutOp = { p ->
                 roads
@@ -84,14 +129,22 @@ private fun findPortals(maze: Maze): Set<Portal> {
             Direction.values()
                 .filter { maze[l + it]?.isUpperCase() ?: false }
                 .map {
-                    when (it) {
-                        Direction.N -> "${maze[l + it + it]}${maze[l + it]}"
-                        Direction.S -> "${maze[l + it]}${maze[l + it + it]}"
-                        Direction.W -> "${maze[l + it + it]}${maze[l + it]}"
-                        Direction.E -> "${maze[l + it]}${maze[l + it + it]}"
+                    it to when (it) {
+                        N -> "${maze[l + it + it]}${maze[l + it]}"
+                        S -> "${maze[l + it]}${maze[l + it + it]}"
+                        W -> "${maze[l + it + it]}${maze[l + it]}"
+                        E -> "${maze[l + it]}${maze[l + it + it]}"
                     }
                 }
-                .map { Portal(l, it) }
+                .map { (d, c) ->
+                    val outer = when (d) {
+                        N -> l.y < maze.size / 2
+                        S -> l.y > maze.size / 2
+                        W -> l.x < maze[l.y].length / 2
+                        E -> l.x > maze[l.y].length / 2
+                    }
+                    Portal(l, c, outer)
+                }
         }
         .toSet()
 }
@@ -122,7 +175,7 @@ fun main() {
     val donut = Donut(input)
 
     donut
-        .also { logWithTime("Portals: ${it.portals.sorted()}")}
+        .also { logWithTime("Portals: ${it.portals.sorted()}") }
         .shortest(logging = true).also { logWithTime("shortest path is $it") }
         .let { it.sumBy(Connection::distance) }
         .also { logWithTime("shortest path length is $it") }
