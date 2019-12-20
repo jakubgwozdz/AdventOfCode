@@ -43,17 +43,17 @@ class Donut(val maze: Maze) {
             accOp = { listOf(start) },
             adderOp = { l, e -> l + e },
             selector = {
-                connectionsBetweenPortals(it).also { logWithTime("Calculating $it") }.sumBy(Connection::distance)
+                connectionsBetweenPortals(it).also { if (logging) logWithTime("Calculating $it") }.sumBy(Connection::distance)
             },
             waysOutOp = { p ->
                 roads
                     .filter { p == it.portal1 }
                     .map { it.portal2 }
-                    .also { logWithTime("WaysOut for $p: $it") }
+                    .also { if (logging) logWithTime("WaysOut for $p: $it") }
             }
         )
             ?.let { connectionsBetweenPortals(it) }
-            .also { logWithTime("AA->ZZ: found") }
+            .also { if (logging) logWithTime("AA->ZZ: found") }
         return shortest?.toList() ?: error("Not found")
     }
 

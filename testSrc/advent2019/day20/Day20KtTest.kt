@@ -8,7 +8,8 @@ import kotlin.test.expect
 
 internal class Day20KtTest {
 
-    val inputPart1a = """         A           
+    val inputPart1a = """
+         A           
          A           
   #######.#########  
   #######.........#  
@@ -26,7 +27,7 @@ DE..#######...###.#
 FG..#########.....#  
   ###########.#####  
              Z       
-             Z       """.lines()
+             Z       """.drop(1).lines()
 
     @Test
     fun testPart1a() {
@@ -73,12 +74,11 @@ FG..#########.....#
             .let { s -> s + s.map { c -> Connection(c.portal2, c.portal1, c.distance) } }
             .sorted()
         val a = Donut(inputPart1a).roads.toSet().sorted()
-        logWithTime("e: $e")
-        logWithTime("a: $a")
         expect(e) { a }
     }
 
-    val inputPart1b = """                   A               
+    val inputPart1b = """
+                   A               
                    A               
   #################.#############  
   #.#...#...................#.#.#  
@@ -114,7 +114,7 @@ YN......#               VT..#....QG
   #.#.........#...#.............#  
   #########.###.###.#############  
            B   J   C               
-           U   P   P               """.lines()
+           U   P   P               """.drop(1).lines()
 
     @Test
     fun testPart1b() {
