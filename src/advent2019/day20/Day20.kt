@@ -4,8 +4,6 @@ import advent2019.logWithTime
 import advent2019.maze.*
 import advent2019.maze.Direction.*
 import advent2019.pathfinder.BasicPathfinder
-import advent2019.pathfinder.DFSPathfinder
-import advent2019.pathfinder.NoCache
 import advent2019.pathfinder.PathCache
 import advent2019.readAllLines
 
@@ -72,12 +70,8 @@ class Donut(val maze: Maze) {
         end: Portal = this.end,
         logging: Boolean = false
     ): List<Connection> {
-        val pathfinder = DFSPathfinder<Portal, List<Portal>>(
+        val pathfinder = BasicPathfinder<Portal>(
             logging = logging,
-            initialStateOp = { t -> listOf(t) },
-            cache = NoCache(),
-            stopOp = { v, t -> v.contains(t) },
-            adderOp = { l, t -> l + t },
             selector = {
                 connectionsBetweenPortals(it)
                     .also { if (logging) logWithTime("Calculating $it") }
@@ -110,12 +104,9 @@ class Donut(val maze: Maze) {
         logging: Boolean = false
     ): List<ConnectionOnLevel> {
 
-        val pathfinder = DFSPathfinder<PortalOnLevel, List<PortalOnLevel>>(
+        val pathfinder = BasicPathfinder<PortalOnLevel>(
             logging = logging,
-            cache = NoCache(),
-            initialStateOp = { t -> listOf(t) },
             stopOp = { visited, p -> stopOp(visited, p) },
-            adderOp = { l, t -> l + t },
             selector = {
                 connectionsBetweenPortalsOnLevel(it)
                     .also { if (logging) logWithTime("Calculating $it") }
