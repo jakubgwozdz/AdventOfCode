@@ -133,6 +133,7 @@ class Donut(val maze: Maze) {
                     }
                     .filter { (it.portal2.code != "AA" && it.portal2.code != "ZZ") || p.level == 0 }
                     .map { PortalOnLevel(it.portal2, p.level + it.levelChange) }
+                    .filter { it.level <= 0 }
                     .also { if (logging) logWithTime("WaysOut for $p, $l: $it") }
             }
         )
@@ -142,6 +143,8 @@ class Donut(val maze: Maze) {
     }
 
     private fun stopOp(visited: List<PortalOnLevel>, t: PortalOnLevel): Boolean {
+
+        return visited.size > 300
 
         val ts = visited.map { it.portal.code }.joinToString(">")
             .also { println(it)}
@@ -287,13 +290,13 @@ fun main() {
 
     donut
         .also { logWithTime("Portals: ${it.portals.sorted()}") }
-        .shortest(logging = true).also { logWithTime("shortest path is $it") }
+        .shortest(logging = false).also { logWithTime("shortest path is $it") }
         .let { it.sumBy(Connection::distance) }
         .also { logWithTime("shortest path length is $it") }
 
     donut
         .also { logWithTime("Portals: ${it.portals.sorted()}") }
-        .shortestRecursive(logging = true).also { logWithTime("shortest recursive path is $it") }
+        .shortestRecursive(logging = false).also { logWithTime("shortest recursive path is $it") }
         .let { it.sumBy(ConnectionOnLevel::distance) }
         .also { logWithTime("shortest recursive path length is $it") }
 }
