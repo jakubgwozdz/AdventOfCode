@@ -3,8 +3,10 @@ package advent2019.day20
 import advent2019.logWithTime
 import advent2019.maze.*
 import advent2019.maze.Direction.*
+import advent2019.pathfinder.DFSPathfinder
+import advent2019.pathfinder.NoCache
+import advent2019.pathfinder.shortestPath
 import advent2019.readAllLines
-import kotlin.system.exitProcess
 
 data class Portal(val location: Location, val code: String, val outer: Boolean) : Comparable<Portal> {
     override fun toString(): String = "$code${if (outer) "o" else "i"}"
@@ -69,20 +71,18 @@ class Donut(val maze: Maze) {
         end: Portal = this.end,
         logging: Boolean = false
     ): List<Connection> {
-
-        val shortest = shortest<Portal, List<Portal>>(
-            start = start,
-            end = end,
+        val pathfinder = DFSPathfinder<Portal, List<Portal>>(
             logging = logging,
-            cache = NoCache(logging) { a, b -> listOf(a) },
-            visited = listOf(end),
-            adderOp = { l, e -> l + e },
+            initialStateOp = { t -> listOf(t) },
+            cache = NoCache(logging),
+            stopOp = { v, t -> v.contains(t) },
+            adderOp = { l, t -> l + t },
             selector = {
                 connectionsBetweenPortals(it)
                     .also { if (logging) logWithTime("Calculating $it") }
                     .sumBy(Connection::distance)
             },
-            waysOutOp = { p, l ->
+            waysOutOp = { l, p ->
                 roads
                     .filter { p == it.portal1 }
                     .filter {
@@ -96,6 +96,8 @@ class Donut(val maze: Maze) {
                     .also { if (logging) logWithTime("WaysOut for $p: $it") }
             }
         )
+
+        val shortest = pathfinder.findShortest(start, end)
             ?.let { connectionsBetweenPortals(it) }
             .also { if (logging) logWithTime("AA->ZZ: found $it") }
         return shortest?.toList() ?: error("Not found")
@@ -107,22 +109,18 @@ class Donut(val maze: Maze) {
         logging: Boolean = false
     ): List<ConnectionOnLevel> {
 
-        val shortest = shortest<PortalOnLevel, List<PortalOnLevel>>(
-            start = start,
-            end = end,
+        val pathfinder = DFSPathfinder<PortalOnLevel, List<PortalOnLevel>>(
             logging = logging,
-            cache = NoCache(logging,
-                stopCondition = { a, b -> a == b },
-                initOp = { a, b -> listOf(a) }),
-            visited = listOf(end),
+            cache = NoCache(logging),
+            initialStateOp = { t -> listOf(t) },
             stopOp = { visited, p -> stopOp(visited, p) },
-            adderOp = { l, e -> l + e },
+            adderOp = { l, t -> l + t },
             selector = {
                 connectionsBetweenPortalsOnLevel(it)
                     .also { if (logging) logWithTime("Calculating $it") }
                     .sumBy(ConnectionOnLevel::distance)
             },
-            waysOutOp = { p, l ->
+            waysOutOp = { l,p ->
                 roads
                     .filter { p.portal == it.portal1 }
                     .filter {
@@ -138,6 +136,8 @@ class Donut(val maze: Maze) {
                     .also { if (logging) logWithTime("WaysOut for $p, $l: $it") }
             }
         )
+
+        val shortest = pathfinder.findShortest(start, end)
             ?.let { connectionsBetweenPortalsOnLevel(it) }
             .also { if (logging) logWithTime("AA->ZZ: found $it") }
         return shortest?.toList() ?: error("Not found")
@@ -145,19 +145,20 @@ class Donut(val maze: Maze) {
 
     private fun stopOp(visited: List<PortalOnLevel>, t: PortalOnLevel): Boolean {
 
-        return (visited.size > 250).also {
-//            if(it) { println(visited.map { pl-> pl.portal.code } ) ; exitProcess(-1)}
+        return t in visited || (visited.size > 250).also {
+            //            if(it) { println(visited.map { pl-> pl.portal.code } ) ; exitProcess(-1)}
         }
 
         val ts = visited.map { it.portal.code }.joinToString(">")
-            .also { println(it)}
+            .also { println(it) }
         if ("AA>XF>XF>CK>CK>ZH>ZH>WB>WB>IC>IC>RF>RF>NM>NM>LP>LP>FD>FD>XQ>XQ>WB>WB>ZH>ZH>CK>CK>XF>XF>OA>OA>CJ>CJ>RE>RE>IC>IC>RF>RF>NM>NM>LP>LP>FD>FD>XQ>XQ>WB>WB>ZH>ZH>CK>CK>XF>XF>OA>OA>CJ>CJ>RE>RE>XQ>XQ>FD>FD>ZZ"
-                .startsWith(ts)) return false
+                .startsWith(ts)
+        ) return false
         else return true
 
         val result = visited.indices
             .filter { visited[it].portal == t.portal }
-            .any { checkLoop(visited, it)}
+            .any { checkLoop(visited, it) }
 
         return result
 //        return visited.indices.asSequence()
@@ -268,7 +269,8 @@ private fun findConnections(maze: Maze, portals: Set<Portal>, logging: Boolean =
             if (logging) logWithTime("Testing $start->$end")
             val shortestPath = if (start.code == end.code) listOf(start, end) else (
                     shortestPath(start.location, end.location, logging = logging)
-                    { p, _ -> Direction.values().map { p + it }.filter { maze[it] == '.' } })
+                    { p, _ -> values().map { p + it }.filter { maze[it] == '.' } }
+                    )
             val levelChange = when {
                 start.code == end.code && start.outer && !end.outer -> 1
                 start.code == end.code && !start.outer && end.outer -> -1
