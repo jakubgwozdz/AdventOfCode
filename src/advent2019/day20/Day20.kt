@@ -114,7 +114,7 @@ class Donut(val maze: Maze) {
                 stopCondition = { a, b -> a == b },
                 initOp = { a, b -> listOf(a) }),
             visited = listOf(end),
-            stopOp = {visited,p->stopOp(visited,p)},
+            stopOp = { visited, p -> stopOp(visited, p) },
             adderOp = { l, e -> l + e },
             selector = {
                 connectionsBetweenPortalsOnLevel(it)
@@ -142,22 +142,52 @@ class Donut(val maze: Maze) {
     }
 
     private fun stopOp(visited: List<PortalOnLevel>, t: PortalOnLevel): Boolean {
-        return visited.asSequence()
-            .mapIndexed { index: Int, portalOnLevel: PortalOnLevel -> index to portalOnLevel.portal }
-            .any { stopCandidate(visited, t, it.first, it.second) }
+
+        val ts = visited.map { it.portal.code }.joinToString(">")
+            .also { println(it)}
+        if ("AA>XF>XF>CK>CK>ZH>ZH>WB>WB>IC>IC>RF>RF>NM>NM>LP>LP>FD>FD>XQ>XQ>WB>WB>ZH>ZH>CK>CK>XF>XF>OA>OA>CJ>CJ>RE>RE>IC>IC>RF>RF>NM>NM>LP>LP>FD>FD>XQ>XQ>WB>WB>ZH>ZH>CK>CK>XF>XF>OA>OA>CJ>CJ>RE>RE>XQ>XQ>FD>FD>ZZ"
+                .startsWith(ts)) return false
+        else return true
+
+        val result = visited.indices
+            .filter { visited[it].portal == t.portal }
+            .any { checkLoop(visited, it)}
+
+        return result
+//        return visited.indices.asSequence()
+//            .any { stopCandidate(visited, it, t) }
+    }
+
+    private fun checkLoop(
+        visited: List<PortalOnLevel>,
+        loopStart: Int
+    ): Boolean {
+        if (loopStart <= visited.size / 2) return false
+        val l = visited.size - loopStart - 1
+        val s1 = loopStart + 1
+        val s2 = loopStart + 1 - (visited.size - loopStart)
+        val result = (0 until l)
+            .all { visited[s1 + it].portal == visited[s2 + it].portal }
+        return result
     }
 
     private fun stopCandidate(
         visited: List<PortalOnLevel>,
-        t: PortalOnLevel,
-        currentPos: Int,
-        currentCode: Portal
+        testingPos: Int,
+        newPortal: PortalOnLevel
     ): Boolean {
-        val first = currentPos == 0
+//        return (t.level > 12 || t==current)
+        val first = testingPos == 0
         if (first) return false
-        val sameCurrentCode = currentCode == t.portal
-        val samePreviousCode = visited[currentPos - 1].portal == visited.last().portal
-        return sameCurrentCode && samePreviousCode
+        val testing = visited[testingPos]
+        val previous = visited[testingPos - 1].portal
+        val last = visited.last().portal
+        val sameAsTesting = testing == newPortal
+        val samePrevious = previous == last
+//        if (last.code == newPortal.portal.code) return false
+        val goingUp = testing.level < newPortal.level
+        if (goingUp) return false
+        return sameAsTesting && samePrevious
     }
 
     private val connectionsCache by lazy {

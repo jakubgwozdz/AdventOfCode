@@ -121,5 +121,3 @@ fun <T, D : Any> shortest(
         .minBy(selector)
         ?.also { if (logging) logWithTime("found: $it") }
 }
-
-//AAo@0, XF.@-?\d+, XF.@-?\d+, CK.@-?\d+, CK.@-?\d+, ZH.@-?\d+, ZH.@-?\d+, WB.@-?\d+, WB.@-?\d+, IC.@-?\d+, IC.@-?\d+, RF.@-?\d+, RF.@-?\d+, NM.@-?\d+, NM.@-?\d+, LP.@-?\d+, LP.@-?\d+, FD.@-?\d+, FD.@-?\d+, XQ.@-?\d+, XQ.@-?\d+
