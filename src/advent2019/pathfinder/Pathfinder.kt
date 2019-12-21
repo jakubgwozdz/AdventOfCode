@@ -21,11 +21,12 @@ open class DFSPathfinder<T : Any, R : Any>(
     }
 
     private fun findShortestProcess(start: T, end: T, visited: R): R? = waysOutOp(visited, start)
+        .also { if (logging) logWithTime("WaysOut for $start: $it") }
         .asSequence()
         .filter { !stopOp(visited, it) }
-        .mapNotNull { newStart ->
-            if (newStart == end) initialStateOp(newStart)
-            else cache.computeIfAbsent(newStart, end) { ns, ne -> findShortestProcess(ns, ne, adderOp(visited, ns)) }
+        .mapNotNull { next ->
+            if (next == end) initialStateOp(next)
+            else cache.computeIfAbsent(next, end) { ns, ne -> findShortestProcess(ns, ne, adderOp(visited, ns)) }
         }
         .map { adderOp(it, start) }
         .minWith(comparator)
