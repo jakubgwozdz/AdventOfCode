@@ -33,7 +33,7 @@ FG..#########.....#
 
     @Test
     fun testPart1a() {
-        expect(23) { Donut(input1).shortest().sumBy { it.distance } }
+        expect(23) { Donut(input1).shortest(logging = true).sumBy { it.distance } }
     }
 
     @Test

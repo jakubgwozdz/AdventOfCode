@@ -12,23 +12,23 @@ open class DFSPathfinder<T : Any, R : Any>(
     val initialStateOp: (T) -> R,
     val stopOp: (R, T) -> Boolean,
     val adderOp: (R, T) -> R,
-    val selector: (R) -> Int,
+    val comparator: Comparator<R>,
     val waysOutOp: (R, T) -> Iterable<T>
 ) : Pathfinder<T, R> {
 
     override fun findShortest(start: T, end: T): R? {
-        return findShortestProcess(start, end, initialStateOp(end))
+        return findShortestProcess(start, end, initialStateOp(start))
     }
 
-    private fun findShortestProcess(start: T, end: T, visited: R): R? = waysOutOp(visited, end)
+    private fun findShortestProcess(start: T, end: T, visited: R): R? = waysOutOp(visited, start)
         .asSequence()
         .filter { !stopOp(visited, it) }
-        .mapNotNull { newEnd ->
-            if (start == newEnd) initialStateOp(newEnd)
-            else cache.computeIfAbsent(start, newEnd) { ns, ne -> findShortestProcess(ns, ne, adderOp(visited, ne)) }
+        .mapNotNull { newStart ->
+            if (newStart == end) initialStateOp(newStart)
+            else cache.computeIfAbsent(newStart, end) { ns, ne -> findShortestProcess(ns, ne, adderOp(visited, ns)) }
         }
-        .map { adderOp(it, end) }
-        .minBy(selector)
+        .map { adderOp(it, start) }
+        .minWith(comparator)
         ?.also { if (logging) logWithTime("found: $it") }
 }
 
@@ -37,10 +37,10 @@ class BasicPathfinder<T : Any>(
     cache: Cache<T, List<T>> = NoCache(),
     initialStateOp: (T) -> List<T> = { t -> listOf(t) },
     stopOp: (List<T>, T) -> Boolean = { l, t -> t in l },
-    adderOp: (List<T>, T) -> List<T> = { l, t -> l + t },
-    selector: (List<T>) -> Int = { l -> l.size },
+    adderOp: (List<T>, T) -> List<T> = { l, t -> listOf(t)+l },
+    comparator: Comparator<List<T>> = compareBy { it.size },
     waysOutOp: (List<T>, T) -> Iterable<T>
-) : DFSPathfinder<T, List<T>>(logging, cache, initialStateOp, stopOp, adderOp, selector, waysOutOp)
+) : DFSPathfinder<T, List<T>>(logging, cache, initialStateOp, stopOp, adderOp, comparator, waysOutOp)
 
 
 interface Cache<T, R> {
