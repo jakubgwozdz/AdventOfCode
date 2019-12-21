@@ -32,9 +32,9 @@ open class DFSPathfinder<T : Any, R : Any>(
         ?.also { if (logging) logWithTime("found: $it") }
 }
 
-class BasicDFSPathfinder<T : Any>(
+class BasicPathfinder<T : Any>(
     logging: Boolean = false,
-    cache: Cache<T, List<T>> = NoCache(logging),
+    cache: Cache<T, List<T>> = NoCache(),
     initialStateOp: (T) -> List<T> = { t -> listOf(t) },
     stopOp: (List<T>, T) -> Boolean = { l, t -> t in l },
     adderOp: (List<T>, T) -> List<T> = { l, t -> l + t },
@@ -47,7 +47,7 @@ interface Cache<T, R> {
     fun computeIfAbsent(start: T, end: T, op: (T, T) -> R?): R?
 }
 
-open class BasicDistanceCache<T, R>(val logging: Boolean = false) :
+open class BasicDistanceCache<T, R>(private val logging: Boolean = false) :
     Cache<T, R> {
     private val c: MutableMap<Pair<T, T>, R?> = mutableMapOf()
 
@@ -63,7 +63,7 @@ open class BasicDistanceCache<T, R>(val logging: Boolean = false) :
     }
 }
 
-class PathCache<T : Comparable<T>, D>(logging: Boolean, val reverseOp: (D) -> D = { it }) :
+class PathCache<T : Comparable<T>, D>(logging: Boolean, private val reverseOp: (D) -> D = { it }) :
     BasicDistanceCache<T, List<D>>(logging) {
 
     override fun computeIfAbsent(start: T, end: T, op: (T, T) -> List<D>?): List<D>? = when {
@@ -72,68 +72,9 @@ class PathCache<T : Comparable<T>, D>(logging: Boolean, val reverseOp: (D) -> D 
     }
 }
 
-class NoCache<T, D>(
-    logging: Boolean
-) : Cache<T, List<D>> {
-    override fun computeIfAbsent(start: T, end: T, op: (T, T) -> List<D>?): List<D>? = when {
-        start == end -> error("checking for $start<->$end")
+class NoCache<T, D> : Cache<T, List<D>> {
+    override fun computeIfAbsent(start: T, end: T, op: (T, T) -> List<D>?): List<D>? = when (start) {
+        end -> error("checking for $start<->$end")
         else -> op(start, end)
     }
-}
-
-fun <T : Comparable<T>> shortestPath(
-    start: T,
-    end: T,
-    logging: Boolean = false,
-    waysOutOp: (T, List<T>) -> Iterable<T>
-): List<T>? {
-    if (logging) logWithTime("looking for $start-$end")
-    return shortest<T, List<T>>(
-        start = start,
-        end = end,
-        logging = logging,
-        cache = PathCache(logging),
-        visited = emptyList(),
-        initOp = { listOf(it) },
-        adderOp = { l, e -> l + e },
-        selector = { it.size },
-        waysOutOp = waysOutOp
-    )
-}
-
-fun <T, D : Any> shortest(
-    start: T,
-    end: T,
-    logging: Boolean,
-    cache: Cache<T, D>,
-    visited: List<T>,
-    initOp: (T) -> D,
-    stopOp: (List<T>, T) -> Boolean = { v, t -> v.contains(t) },
-    adderOp: (D, T) -> D,
-    selector: (D) -> Int,
-    waysOutOp: (T, List<T>) -> Iterable<T>
-): D? {
-    return waysOutOp(end, visited)
-        .asSequence()
-        .filter { !stopOp(visited, it) }
-        .mapNotNull { newEnd ->
-            if (start == newEnd) initOp(start) else
-                cache.computeIfAbsent(start, newEnd) { ns, ne ->
-                    shortest(
-                        ns,
-                        ne,
-                        logging,
-                        cache,
-                        visited + ne,
-                        initOp,
-                        stopOp,
-                        adderOp,
-                        selector,
-                        waysOutOp
-                    )
-                }
-        }
-        .map { adderOp(it, end) }
-        .minBy(selector)
-        ?.also { if (logging) logWithTime("found: $it") }
 }

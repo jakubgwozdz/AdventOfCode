@@ -3,9 +3,10 @@ package advent2019.day20
 import advent2019.logWithTime
 import advent2019.maze.*
 import advent2019.maze.Direction.*
+import advent2019.pathfinder.BasicPathfinder
 import advent2019.pathfinder.DFSPathfinder
 import advent2019.pathfinder.NoCache
-import advent2019.pathfinder.shortestPath
+import advent2019.pathfinder.PathCache
 import advent2019.readAllLines
 
 data class Portal(val location: Location, val code: String, val outer: Boolean) : Comparable<Portal> {
@@ -74,7 +75,7 @@ class Donut(val maze: Maze) {
         val pathfinder = DFSPathfinder<Portal, List<Portal>>(
             logging = logging,
             initialStateOp = { t -> listOf(t) },
-            cache = NoCache(logging),
+            cache = NoCache(),
             stopOp = { v, t -> v.contains(t) },
             adderOp = { l, t -> l + t },
             selector = {
@@ -111,7 +112,7 @@ class Donut(val maze: Maze) {
 
         val pathfinder = DFSPathfinder<PortalOnLevel, List<PortalOnLevel>>(
             logging = logging,
-            cache = NoCache(logging),
+            cache = NoCache(),
             initialStateOp = { t -> listOf(t) },
             stopOp = { visited, p -> stopOp(visited, p) },
             adderOp = { l, t -> l + t },
@@ -248,19 +249,22 @@ private fun findConnections(maze: Maze, portals: Set<Portal>, logging: Boolean =
         .filter { (start, end) -> start.location != end.location }
         .mapNotNull { (start, end) ->
             if (logging) logWithTime("Testing $start->$end")
-            val shortestPath = if (start.code == end.code) listOf(start, end) else (
-                    shortestPath(start.location, end.location, logging = logging)
-                    { p, _ -> values().map { p + it }.filter { maze[it] == '.' } }
-                    )
-            val levelChange = when {
-                start.code == end.code && start.outer && !end.outer -> 1
-                start.code == end.code && !start.outer && end.outer -> -1
-                else -> 0
+
+            val pathfinder = BasicPathfinder<Location>(logging, PathCache(logging)) { _, p ->
+                Direction.values().map { p + it }.filter { maze[it] == '.' }
             }
+
+            val shortestPath = if (start.code == end.code) listOf(start, end)
+            else pathfinder.findShortest(start.location, end.location)
+
             shortestPath?.let {
                 Connection(
                     start, end, it.size - 1,
-                    levelChange
+                    when {
+                        start.code == end.code && start.outer && !end.outer -> 1
+                        start.code == end.code && !start.outer && end.outer -> -1
+                        else -> 0
+                    }
                 )
             }
                 .also { if (logging) logWithTime("$start->$end = $it") }

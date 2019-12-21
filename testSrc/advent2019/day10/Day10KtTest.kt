@@ -77,7 +77,7 @@ internal class Day10KtTest {
 }
 
 private fun AssertBuilder<Vector>.hasGreaterAngleThan(o: Vector) =
-    isTrue("$t (angle ${t.angle}) should have greater angle than $o (angle ${o.angle})") { it.angle > o.angle }
+    isTrue("$actual (angle ${actual.angle}) should have greater angle than $o (angle ${o.angle})") { it.angle > o.angle }
 
-private fun AssertBuilder<Vector>.blocks(o: Vector) = isTrue("$t should block $o") { it.blocks(o) }
-private fun AssertBuilder<Vector>.blocksNot(o: Vector) = isFalse("$t should NOT block $o") { it.blocks(o) }
+private fun AssertBuilder<Vector>.blocks(o: Vector) = isTrue("$actual should block $o") { it.blocks(o) }
+private fun AssertBuilder<Vector>.blocksNot(o: Vector) = isFalse("$actual should NOT block $o") { it.blocks(o) }

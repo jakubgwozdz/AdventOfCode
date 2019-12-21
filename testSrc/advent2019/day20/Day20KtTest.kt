@@ -1,12 +1,11 @@
 package advent2019.day20
 
+import advent2019.assertThat
 import advent2019.expectSetOf
-import advent2019.logWithTime
+import advent2019.hasElements
 import advent2019.maze.yx
 import advent2019.readAllLines
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertAll
-import kotlin.test.assertEquals
 import kotlin.test.expect
 
 internal class Day20KtTest {
@@ -83,10 +82,7 @@ FG..#########.....#
             .sorted()
         val a = Donut(input1).roads.toSet().sorted()
 
-        assertAll(
-            { assertEquals(emptyList(), a - e) },
-            { assertEquals(e - a, emptyList()) }
-        )
+        assertThat(a).hasElements(e)
 
     }
 
