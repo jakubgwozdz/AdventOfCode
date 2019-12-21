@@ -78,7 +78,8 @@ fun main() {
         val match1 = regex1.matchEntire(it)
         val match2 = regex2.matchEntire(it)
         match1?.destructured?.component2() ?: match2!!.destructured.component2()
-    }.fold("AA") {a,b-> "$a>$b" }
+    }
+        .reversed()
         .also { println(it) }
 
 }

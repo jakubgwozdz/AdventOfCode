@@ -3,6 +3,7 @@ package advent2019.day20
 import advent2019.expectSetOf
 import advent2019.logWithTime
 import advent2019.maze.yx
+import advent2019.readAllLines
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import kotlin.test.assertEquals
@@ -38,7 +39,7 @@ FG..#########.....#
 
     @Test
     fun testPart2a() {
-        expect(26) { Donut(input1).shortestRecursive(logging = true).sumBy { it.distance } }
+        expect(26) { Donut(input1).shortestRecursive().sumBy { it.distance } }
     }
 
     @Test
@@ -179,11 +180,31 @@ RE....#.#                           #......RF
             Donut(input3)
 //                .also { logWithTime("portals: ${it.portals}") }
 //                .also { logWithTime("paths: ${it.roads}") }
-                .shortestRecursive(logging = true).sumBy { it.distance }
+                .shortestRecursive().sumBy { it.distance }
         }
     }
 
+    @Test
+    fun testInputPt1() {
+        val input = readAllLines("input-2019-20.txt")
+        val donut = Donut(input)
+
+        expect (696) {
+            donut.shortest().sumBy (Connection::distance)
+        }
+
+    }
+
+    @Test
+    fun testInputPt2() {
+        val input = readAllLines("input-2019-20.txt")
+        val donut = Donut(input)
+
+        expect (7538) {
+            donut.shortestRecursive().sumBy (ConnectionOnLevel::distance)
+        }
+
+    }
 
 }
 
-//AAo@0, XF.@-?\d+, XF.@-?\d+, CK.@-?\d+, CK.@-?\d+, ZH.@-?\d+, ZH.@-?\d+, WB.@-?\d+, WB.@-?\d+, IC.@-?\d+, IC.@-?\d+, RF.@-?\d+, RF.@-?\d+, NM.@-?\d+, NM.@-?\d+, LP.@-?\d+, LP.@-?\d+, FD.@-?\d+, FD.@-?\d+, XQ.@-?\d+, XQ.@-?\d+, WB.@-?\d+, WB.@-?\d+, ZH.@-?\d+, ZH.@-?\d+, CK.@-?\d+, CK.@-?\d+, XF.@-?\d+, XF.@-?\d+, OA.@-?\d+, OA.@-?\d+, CJ.@-?\d+, CJ.@-?\d+, RE.@-?\d+, RE.@-?\d+, IC.@-?\d+

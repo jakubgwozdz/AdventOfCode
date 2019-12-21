@@ -4,6 +4,7 @@ import advent2019.logWithTime
 import advent2019.maze.*
 import advent2019.maze.Direction.*
 import advent2019.readAllLines
+import kotlin.system.exitProcess
 
 data class Portal(val location: Location, val code: String, val outer: Boolean) : Comparable<Portal> {
     override fun toString(): String = "$code${if (outer) "o" else "i"}"
@@ -101,8 +102,8 @@ class Donut(val maze: Maze) {
     }
 
     fun shortestRecursive(
-        start: PortalOnLevel = PortalOnLevel(this.end, 0),
-        end: PortalOnLevel = PortalOnLevel(this.start, 0),
+        start: PortalOnLevel = PortalOnLevel(this.start, 0),
+        end: PortalOnLevel = PortalOnLevel(this.end, 0),
         logging: Boolean = false
     ): List<ConnectionOnLevel> {
 
@@ -144,7 +145,9 @@ class Donut(val maze: Maze) {
 
     private fun stopOp(visited: List<PortalOnLevel>, t: PortalOnLevel): Boolean {
 
-        return visited.size > 300
+        return (visited.size > 250).also {
+//            if(it) { println(visited.map { pl-> pl.portal.code } ) ; exitProcess(-1)}
+        }
 
         val ts = visited.map { it.portal.code }.joinToString(">")
             .also { println(it)}
