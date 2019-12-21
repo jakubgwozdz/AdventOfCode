@@ -1,14 +1,11 @@
 package advent2019.day17
 
-import advent2019.intcode.Computer
-import advent2019.intcode.Memory
-import advent2019.intcode.parse
+import advent2019.intcode.*
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -104,19 +101,3 @@ private fun moveRobot(
     }
 }
 
-@Suppress("BlockingMethodInNonBlockingContext")
-private fun Flow<Char>.fullLines(): Flow<String> = flow {
-    val builder = StringBuilder()
-    collect {
-        when (it) {
-            '\n' -> emit(builder.toString()).also { builder.clear() }
-            else -> builder.append(it)
-        }
-    }
-}
-
-suspend fun SendChannel<BigInteger>.writeln(msg: String) {
-    println(msg)
-    msg.map { it.toInt().toBigInteger() }.forEach { send(it) }
-    send('\n'.toInt().toBigInteger())
-}
