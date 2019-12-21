@@ -120,7 +120,7 @@ class Donut(val maze: Maze) {
                     .also { if (logging) logWithTime("Calculating $it") }
                     .sumBy(ConnectionOnLevel::distance)
             },
-            waysOutOp = { l,p ->
+            waysOutOp = { l, p ->
                 roads
                     .filter { p.portal == it.portal1 }
                     .filter {
@@ -176,25 +176,6 @@ class Donut(val maze: Maze) {
         val result = (0 until l)
             .all { visited[s1 + it].portal == visited[s2 + it].portal }
         return result
-    }
-
-    private fun stopCandidate(
-        visited: List<PortalOnLevel>,
-        testingPos: Int,
-        newPortal: PortalOnLevel
-    ): Boolean {
-//        return (t.level > 12 || t==current)
-        val first = testingPos == 0
-        if (first) return false
-        val testing = visited[testingPos]
-        val previous = visited[testingPos - 1].portal
-        val last = visited.last().portal
-        val sameAsTesting = testing == newPortal
-        val samePrevious = previous == last
-//        if (last.code == newPortal.portal.code) return false
-        val goingUp = testing.level < newPortal.level
-        if (goingUp) return false
-        return sameAsTesting && samePrevious
     }
 
     private val connectionsCache by lazy {
@@ -293,15 +274,19 @@ fun main() {
         .also { logWithTime("Maze size: ${it.sumBy(String::length)}") }
     val donut = Donut(input)
 
-    donut
+    val part1 = donut
         .also { logWithTime("Portals: ${it.portals.sorted()}") }
-        .shortest(logging = false).also { logWithTime("shortest path is $it") }
-        .let { it.sumBy(Connection::distance) }
-        .also { logWithTime("shortest path length is $it") }
+        .shortest(logging = false)
+        .also { logWithTime("shortest path is $it") }
+        .sumBy(Connection::distance)
 
-    donut
+    logWithTime("shortest path length is $part1")
+
+    val part2 = donut
         .also { logWithTime("Portals: ${it.portals.sorted()}") }
-        .shortestRecursive(logging = false).also { logWithTime("shortest recursive path is $it") }
-        .let { it.sumBy(ConnectionOnLevel::distance) }
-        .also { logWithTime("shortest recursive path length is $it") }
+        .shortestRecursive(logging = false)
+        .also { logWithTime("shortest recursive path is $it") }
+        .sumBy(ConnectionOnLevel::distance)
+
+    logWithTime("shortest recursive path length is $part2")
 }
