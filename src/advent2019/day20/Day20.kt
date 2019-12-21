@@ -6,23 +6,24 @@ import advent2019.maze.Direction.*
 import advent2019.readAllLines
 
 data class Portal(val location: Location, val code: String, val outer: Boolean) : Comparable<Portal> {
-    override fun toString(): String = "$code:$location:${if (outer) "Ȯ" else "ⱺ"}"
+    override fun toString(): String = "$code${if (outer) "o" else "i"}"
     override fun compareTo(other: Portal) = comparator.compare(this, other)
 
     companion object {
         val comparator: Comparator<Portal> = compareBy({ it.code }, { it.location })
     }
 
-    fun levelChangeFrom(other: Portal): Int {
-        return if (outer == other.outer || code == other.code) 0 else if (outer) -1 else 1
-    }
+}
+
+data class PortalOnLevel(val portal: Portal, val level: Int) {
+    override fun toString(): String = "$portal@$level"
 }
 
 data class Connection(
     val portal1: Portal,
     val portal2: Portal,
     val distance: Int,
-    val levelChange: Int = portal2.levelChangeFrom(portal1)
+    val levelChange: Int
 ) : Comparable<Connection> {
     override fun toString(): String = "$portal1->$portal2=$distance${when {
         levelChange < 0 -> "⇓"
@@ -34,6 +35,26 @@ data class Connection(
 
     companion object {
         val comparator: Comparator<Connection> = compareBy({ it.portal1 }, { it.portal2 })
+    }
+}
+
+data class ConnectionOnLevel(
+    val portal1: PortalOnLevel,
+    val portal2: PortalOnLevel,
+    val distance: Int,
+    val levelChange: Int = portal2.level - portal1.level
+) : Comparable<ConnectionOnLevel> {
+    override fun toString(): String = "$portal1->$portal2=$distance${when {
+        levelChange < 0 -> "⇓"
+        levelChange > 0 -> "⇑"
+        else -> "↔"
+    }}"
+
+    override fun compareTo(other: ConnectionOnLevel) = comparator.compare(this, other)
+
+    companion object {
+        val comparator: Comparator<ConnectionOnLevel> =
+            compareBy({ it.portal1.level }, { it.portal1.portal }, { it.portal2.portal })
     }
 }
 
@@ -52,54 +73,91 @@ class Donut(val maze: Maze) {
             start = start,
             end = end,
             logging = logging,
-            cache = NoCache(logging),
-            visited = emptyList(),
-            accOp = { listOf(start) },
+            cache = NoCache(logging) { a, b -> listOf(a) },
+            visited = listOf(end),
             adderOp = { l, e -> l + e },
             selector = {
-                connectionsBetweenPortals(it).also { if (logging) logWithTime("Calculating $it") }
+                connectionsBetweenPortals(it)
+                    .also { if (logging) logWithTime("Calculating $it") }
                     .sumBy(Connection::distance)
             },
-            waysOutOp = { p ->
+            waysOutOp = { p, l ->
                 roads
                     .filter { p == it.portal1 }
+                    .filter {
+                        l.size < 2 ||
+                                (l.takeLast(2).first().code == l.last().code
+                                        && l.last().code != it.portal2.code) ||
+                                (l.takeLast(2).first().code != l.last().code
+                                        && l.last().code == it.portal2.code)
+                    }
                     .map { it.portal2 }
                     .also { if (logging) logWithTime("WaysOut for $p: $it") }
             }
         )
             ?.let { connectionsBetweenPortals(it) }
-            .also { if (logging) logWithTime("AA->ZZ: found") }
+            .also { if (logging) logWithTime("AA->ZZ: found $it") }
         return shortest?.toList() ?: error("Not found")
     }
 
     fun shortestRecursive(
-        start: Portal = this.start,
-        end: Portal = this.end,
+        start: PortalOnLevel = PortalOnLevel(this.end, 0),
+        end: PortalOnLevel = PortalOnLevel(this.start, 0),
         logging: Boolean = false
-    ): List<Connection> {
+    ): List<ConnectionOnLevel> {
 
-        val shortest = shortest<Portal, List<Portal>>(
+        val shortest = shortest<PortalOnLevel, List<PortalOnLevel>>(
             start = start,
             end = end,
             logging = logging,
-            cache = NoCache(logging),
-            visited = emptyList(),
-            accOp = { listOf(start) },
+            cache = NoCache(logging,
+                stopCondition = { a, b -> a == b },
+                initOp = { a, b -> listOf(a) }),
+            visited = listOf(end),
+            stopOp = {visited,p->stopOp(visited,p)},
             adderOp = { l, e -> l + e },
             selector = {
-                connectionsBetweenPortals(it).also { if (logging) logWithTime("Calculating $it") }
-                    .sumBy(Connection::distance)
+                connectionsBetweenPortalsOnLevel(it)
+                    .also { if (logging) logWithTime("Calculating $it") }
+                    .sumBy(ConnectionOnLevel::distance)
             },
-            waysOutOp = { p ->
+            waysOutOp = { p, l ->
                 roads
-                    .filter { p == it.portal1 }
-                    .map { it.portal2 }
-                    .also { if (logging) logWithTime("WaysOut for $p: $it") }
+                    .filter { p.portal == it.portal1 }
+                    .filter {
+                        l.size < 2 ||
+                                (l.takeLast(2).first().portal.code == l.last().portal.code
+                                        && l.last().portal.code != it.portal2.code) ||
+                                (l.takeLast(2).first().portal.code != l.last().portal.code
+                                        && l.last().portal.code == it.portal2.code)
+                    }
+                    .filter { (it.portal2.code != "AA" && it.portal2.code != "ZZ") || p.level == 0 }
+                    .map { PortalOnLevel(it.portal2, p.level + it.levelChange) }
+                    .also { if (logging) logWithTime("WaysOut for $p, $l: $it") }
             }
         )
-            ?.let { connectionsBetweenPortals(it) }
-            .also { if (logging) logWithTime("AA->ZZ: found") }
+            ?.let { connectionsBetweenPortalsOnLevel(it) }
+            .also { if (logging) logWithTime("AA->ZZ: found $it") }
         return shortest?.toList() ?: error("Not found")
+    }
+
+    private fun stopOp(visited: List<PortalOnLevel>, t: PortalOnLevel): Boolean {
+        return visited.asSequence()
+            .mapIndexed { index: Int, portalOnLevel: PortalOnLevel -> index to portalOnLevel.portal }
+            .any { stopCandidate(visited, t, it.first, it.second) }
+    }
+
+    private fun stopCandidate(
+        visited: List<PortalOnLevel>,
+        t: PortalOnLevel,
+        currentPos: Int,
+        currentCode: Portal
+    ): Boolean {
+        val first = currentPos == 0
+        if (first) return false
+        val sameCurrentCode = currentCode == t.portal
+        val samePreviousCode = visited[currentPos - 1].portal == visited.last().portal
+        return sameCurrentCode && samePreviousCode
     }
 
     private val connectionsCache by lazy {
@@ -111,6 +169,17 @@ class Donut(val maze: Maze) {
         val result = mutableListOf<Connection>()
         var prev = portals.first()
         portals.drop(1).forEach { result += connectionsCache[prev]!![it]!!; prev = it }
+        return result
+    }
+
+    fun connectionsBetweenPortalsOnLevel(portals: List<PortalOnLevel>): MutableList<ConnectionOnLevel> {
+        val result = mutableListOf<ConnectionOnLevel>()
+        var prev = portals.first()
+        portals.drop(1).forEach {
+            val distance = connectionsCache[prev.portal]!![it.portal]!!.distance
+            result += ConnectionOnLevel(prev, it, distance)
+            prev = it
+        }
         return result
     }
 
@@ -162,12 +231,19 @@ private fun findConnections(maze: Maze, portals: Set<Portal>, logging: Boolean =
         .mapNotNull { (start, end) ->
             if (logging) logWithTime("Testing $start->$end")
             val shortestPath = if (start.code == end.code) listOf(start, end) else (
-                    shortestPath(
-                        start.location,
-                        end.location,
-                        logging = logging
-                    ) { p -> Direction.values().map { p + it }.filter { maze[it] == '.' } })
-            shortestPath?.let { Connection(start, end, it.size - 1) }
+                    shortestPath(start.location, end.location, logging = logging)
+                    { p, _ -> Direction.values().map { p + it }.filter { maze[it] == '.' } })
+            val levelChange = when {
+                start.code == end.code && start.outer && !end.outer -> 1
+                start.code == end.code && !start.outer && end.outer -> -1
+                else -> 0
+            }
+            shortestPath?.let {
+                Connection(
+                    start, end, it.size - 1,
+                    levelChange
+                )
+            }
                 .also { if (logging) logWithTime("$start->$end = $it") }
         }
         .toSet()
@@ -184,4 +260,10 @@ fun main() {
         .shortest(logging = true).also { logWithTime("shortest path is $it") }
         .let { it.sumBy(Connection::distance) }
         .also { logWithTime("shortest path length is $it") }
+
+    donut
+        .also { logWithTime("Portals: ${it.portals.sorted()}") }
+        .shortestRecursive(logging = true).also { logWithTime("shortest recursive path is $it") }
+        .let { it.sumBy(ConnectionOnLevel::distance) }
+        .also { logWithTime("shortest recursive path length is $it") }
 }

@@ -38,7 +38,7 @@ FG..#########.....#
 
     @Test
     fun testPart2a() {
-        expect(26) { Donut(input1).shortestRecursive().sumBy { it.distance } }
+        expect(26) { Donut(input1).shortestRecursive(logging = true).sumBy { it.distance } }
     }
 
     @Test
@@ -66,16 +66,16 @@ FG..#########.....#
         val fg2 = Portal(15 yx 2, "FG", true)
         val zz = Portal(16 yx 13, "ZZ", true)
         val e = setOf(
-            Connection(bc1, bc2, 1, 0),
-            Connection(de1, de2, 1, 0),
-            Connection(fg1, fg2, 1, 0),
-            Connection(aa, bc1, 4, 1),
-            Connection(aa, fg1, 30, 1),
-            Connection(bc2, de1, 6, 1),
+            Connection(bc1, bc2, 1, -1),
+            Connection(de1, de2, 1, -1),
+            Connection(fg1, fg2, 1, -1),
+            Connection(aa, bc1, 4, 0),
+            Connection(aa, fg1, 30, 0),
+            Connection(bc2, de1, 6, 0),
             Connection(bc1, fg1, 32, 0),
-            Connection(bc1, zz, 28, -1),
+            Connection(bc1, zz, 28, 0),
             Connection(de2, fg2, 4, 0),
-            Connection(fg1, zz, 6, -1),
+            Connection(fg1, zz, 6, 0),
             Connection(aa, zz, 26, 0)
         )
             .let { s -> s + s.map { c -> Connection(c.portal2, c.portal1, c.distance, -c.levelChange) } }
@@ -179,7 +179,7 @@ RE....#.#                           #......RF
             Donut(input3)
 //                .also { logWithTime("portals: ${it.portals}") }
 //                .also { logWithTime("paths: ${it.roads}") }
-                .shortestRecursive(logging = false).sumBy { it.distance }
+                .shortestRecursive(logging = true).sumBy { it.distance }
         }
     }
 
