@@ -7,43 +7,72 @@ val dealIncRegex = Regex("deal with increment (-?\\d+)")
 val newStackRegex = Regex("deal into new stack")
 val cutRegex = Regex("cut (-?\\d+)")
 
+interface ShuffleOp {
+    fun invoke(from: Long): Long
+}
 
-fun deal(deckSize: Int, input: List<String>, times: Int = 1): List<Int> {
+class Deck(val deckSize: Long) {
 
-    val deck = IntArray(deckSize) { it }
+    val shuffleOps: MutableList<ShuffleOp> = mutableListOf()
 
-    repeat(times) {
-        input.forEach {
-            dealIncRegex.matchEntire(it)?.destructured?.run { dealInc(deck, component1().toInt()) }
-                ?: newStackRegex.matchEntire(it)?.destructured?.run { reverse(deck) }
-                ?: cutRegex.matchEntire(it)?.destructured?.run { cut(deck, component1().toInt()) }
-                ?: error("'$it' is not proper")
+    fun shuffle(input: List<String>, times: Long = 1) {
+        val ops = parse(input)
+        repeat(times.toInt()) { shuffleOps += ops }
+    }
+
+    fun deal(): List<Long> {
+        return (0 until deckSize).map { find(it) }
+    }
+
+    fun find(card: Long): Long {
+        return shuffleOps.fold(card) { acc, op -> op.invoke(acc) }
+//        return shuffleOps.foldRight(card) { op, acc -> op.invoke(acc) }
+    }
+
+    fun parse(input: List<String>): List<ShuffleOp> {
+        return input.map {
+            dealIncRegex.matchEntire(it)?.destructured?.run { IncrementOp(component1().toLong()) }
+                ?: newStackRegex.matchEntire(it)?.destructured?.run { NewStackOp() }
+                ?: cutRegex.matchEntire(it)?.destructured?.run { CutOp(component1().toLong()) }
+                ?: error("'$it' is not proper op")
         }
     }
-    return deck.toList()
 
-}
+    inner class NewStackOp : ShuffleOp {
+        override fun invoke(from: Long): Long {
+            return (deckSize - from - 1)
+                .also { println("new stack: $from -> $it")  }
+        }
+    }
 
-fun reverse(deck: IntArray) {
-    val table = IntArray(deck.size) { deck[deck.size - it - 1] }
-    table.copyInto(deck)
-}
+    inner class CutOp(private val cutPos: Long) : ShuffleOp {
+        private val c = if (cutPos < 0) cutPos + deckSize else cutPos
+        override fun invoke(from: Long): Long {
+            return ((deckSize + c + from) % deckSize)
+                .also { println("cut $cutPos: $from -> $it")  }
+        }
+    }
 
-fun cut(deck: IntArray, i: Int) {
-    val j = if (i < 0) deck.size + i else i
-    val table = IntArray(deck.size) { deck[(it + j) % deck.size] }
-    table.copyInto(deck)
-}
+    private val invmodCache: MutableMap<Long, Long> = mutableMapOf()
 
-fun dealInc(deck: IntArray, increment: Int) {
-    val table = IntArray(deck.size) { deck[it] }
-    deck.indices.forEach { deck[it * increment % deck.size] = table[it] }
+    inner class IncrementOp(private val increment: Long) : ShuffleOp {
+        val invmod =
+            invmodCache.computeIfAbsent(increment) { (1..deckSize).first { (it * increment) % deckSize == 1L } } // TODO https://planetcalc.com/3298/
+
+        override fun invoke(from: Long): Long {
+            return ((from * invmod) % deckSize)
+                .also { println("increment $increment: $from -> $it")  }
+
+        }
+    }
 }
 
 fun main() {
 
     val input = readAllLines("input-2019-22.txt")
 
-    deal(10007, input).indexOfFirst { it == 2019 }
+    Deck(10007)
+        .apply { shuffle(input) }
+        .find(2019L)
         .also { logWithTime("part 1: $it") }
 }
