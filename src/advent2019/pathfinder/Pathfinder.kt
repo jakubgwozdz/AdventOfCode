@@ -9,39 +9,94 @@ interface Pathfinder<T : Any, R : Any> {
 open class DFSPathfinder<T : Any, R : Any>(
     val logging: Boolean,
     val cache: Cache<T, R>,
-    val initialStateOp: (T) -> R,
+    val initialStateOp: () -> R,
     val stopOp: (R, T) -> Boolean,
     val adderOp: (R, T) -> R,
-    val comparator: Comparator<R>,
+    val distanceOp: ((R) -> Int)?,
+    val comparator: Comparator<R> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
     val waysOutOp: (R, T) -> Iterable<T>
 ) : Pathfinder<T, R> {
 
     override fun findShortest(start: T, end: T): R? {
-        return findShortestProcess(start, end, initialStateOp(start))
+        return findShortestProcess(start, end, initialStateOp())
     }
 
-    private fun findShortestProcess(start: T, end: T, visited: R): R? = waysOutOp(visited, start)
-        .also { if (logging) logWithTime("WaysOut for $start: $it") }
-        .asSequence()
-        .filter { !stopOp(visited, it) }
-        .mapNotNull { next ->
-            if (next == end) initialStateOp(next)
-            else cache.computeIfAbsent(next, end) { ns, ne -> findShortestProcess(ns, ne, adderOp(visited, ns)) }
+    private fun findShortestProcess(from: T, end: T, visited: R): R? {
+        val newVisited = adderOp(visited, from)
+        if (from == end) return newVisited
+        return waysOutOp(newVisited, from)
+            .also { if (logging) logWithTime("WaysOut for $from: $it") }
+            .asSequence()
+            .mapNotNull { next ->
+//                if (next == end) adderOp(visited, next)
+//                else
+                    cache.computeIfAbsent(next, end) { ns, ne -> findShortestProcess(ns, ne, newVisited) }
+            }
+            .run { if (distanceOp != null) minBy(distanceOp) else minWith(comparator) }
+            ?.also { if (logging) logWithTime("found: $it") }
+    }
+}
+
+open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
+    val logging: Boolean,
+    val initialStateOp: () -> R,
+    val stopOp: (R, T) -> Boolean,
+    val adderOp: (R, T) -> R,
+    val distanceOp: ((R) -> I),
+//    val comparator: Comparator<R> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
+    val waysOutOp: (R, T) -> Iterable<T>
+) : Pathfinder<T, R> {
+
+    override fun findShortest(start: T, end: T): R? {
+        add(start, initialStateOp())
+        while (toVisit.isNotEmpty()) {
+            val next = pick()
+            waysOutOp(next.second, next.first).forEach {
+                //                if (stopOp(
+            }
+
         }
-        .map { adderOp(it, start) }
-        .minWith(comparator)
-        ?.also { if (logging) logWithTime("found: $it") }
+        return currentBest?.first
+    }
+
+    private fun add(elem: T, prevState: R) {
+        val nextState = adderOp(prevState, elem)
+        val distance = distanceOp(nextState)
+        if (currentBest == null || currentBest.second > distance) {
+            toVisit.add(
+                Triple(elem, nextState, distance)
+            ).also { if (logging) logWithTime("adding $nextState with distance $distance") }
+        } else if (logging) logWithTime("skipping $nextState with distance $distance, we got better result already")
+    }
+
+    private fun pick(): Pair<T, R> {
+        val closest = toVisit.first()
+        toVisit.remove(closest)
+        return closest.first to closest.second
+    }
+
+    private val currentBest: Pair<R, I>? = null
+    private val toVisit: MutableSet<Triple<T, R, I>> = sortedSetOf(compareBy { it.third })
+
 }
 
 class BasicPathfinder<T : Any>(
     logging: Boolean = false,
     cache: Cache<T, List<T>> = NoCache(),
-    initialStateOp: (T) -> List<T> = { t -> listOf(t) },
-    stopOp: (List<T>, T) -> Boolean = { l, t -> t in l },
-    adderOp: (List<T>, T) -> List<T> = { l, t -> listOf(t)+l },
-    comparator: Comparator<List<T>> = compareBy { it.size },
+    initialStateOp: () -> List<T> = { emptyList() },
+    adderOp: (List<T>, T) -> List<T> = { l, t -> l + t },
+    distanceOp: ((List<T>) -> Int) = { l -> l.size },
+//    comparator: Comparator<List<T>> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
     waysOutOp: (List<T>, T) -> Iterable<T>
-) : DFSPathfinder<T, List<T>>(logging, cache, initialStateOp, stopOp, adderOp, comparator, waysOutOp)
+) : DFSPathfinder<T, List<T>>(
+    logging,
+    cache,
+    initialStateOp,
+    stopOp = { l, t -> t in l },
+    adderOp = adderOp,
+    distanceOp = distanceOp,
+    waysOutOp = { l, t -> waysOutOp(l, t).filter { it !in l } }
+)
 
 
 interface Cache<T, R> {
@@ -55,7 +110,7 @@ open class BasicDistanceCache<T, R>(private val logging: Boolean = false) :
     override fun computeIfAbsent(start: T, end: T, op: (T, T) -> R?): R? {
         val pair = start to end
         return when {
-            start == end -> error("checking for $start<->$end")
+//            start == end -> error("checking for $start<->$end")
             c.containsKey(pair) -> return c[pair].also { if (logging) logWithTime("already in cache: $pair -> $it") }
             else -> op(start, end).also {
                 c[pair] = it
@@ -75,7 +130,7 @@ class PathCache<T : Comparable<T>, D>(logging: Boolean, private val reverseOp: (
 
 class NoCache<T, D> : Cache<T, List<D>> {
     override fun computeIfAbsent(start: T, end: T, op: (T, T) -> List<D>?): List<D>? = when (start) {
-        end -> error("checking for $start<->$end")
+//        end -> error("checking for $start<->$end")
         else -> op(start, end)
     }
 }
