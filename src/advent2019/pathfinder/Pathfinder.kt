@@ -100,16 +100,12 @@ open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
 
 class BasicPathfinder<T : Comparable<T>>(
     logging: Boolean = false,
-    cache: Cache<T, List<T>> = NoCache(),
     initialStateOp: () -> List<T> = { emptyList() },
     adderOp: (List<T>, T) -> List<T> = { l, t -> l + t },
     distanceOp: ((List<T>) -> Int) = { l -> l.size },
-//    comparator: Comparator<List<T>> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
     waysOutOp: (List<T>, T) -> Iterable<T>
-//) : DFSPathfinder<T, List<T>>(
 ) : BFSPathfinder<T, List<T>, Int>(
     logging = logging,
-//    logging = true,
     initialStateOp = initialStateOp,
     adderOp = adderOp,
     distanceOp = distanceOp,
@@ -147,8 +143,5 @@ class PathCache<T : Comparable<T>, D>(logging: Boolean, private val reverseOp: (
 }
 
 class NoCache<T, D> : Cache<T, List<D>> {
-    override fun computeIfAbsent(start: T, end: T, op: (T, T) -> List<D>?): List<D>? = when (start) {
-//        end -> error("checking for $start<->$end")
-        else -> op(start, end)
-    }
+    override fun computeIfAbsent(start: T, end: T, op: (T, T) -> List<D>?): List<D>? =  op(start, end)
 }

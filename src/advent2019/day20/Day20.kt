@@ -4,7 +4,6 @@ import advent2019.logWithTime
 import advent2019.maze.*
 import advent2019.maze.Direction.*
 import advent2019.pathfinder.BasicPathfinder
-import advent2019.pathfinder.PathCache
 import advent2019.readAllLines
 
 data class Portal(val location: Location, val code: String, val outer: Boolean) : Comparable<Portal> {
@@ -210,7 +209,7 @@ private fun findConnections(maze: Maze, portals: Set<Portal>, logging: Boolean =
         .mapNotNull { (start, end) ->
             if (logging) logWithTime("Testing $start->$end")
 
-            val pathfinder = BasicPathfinder<Location>(logging, PathCache(logging)) { l, p ->
+            val pathfinder = BasicPathfinder<Location>(logging) { l, p ->
                 Direction.values().map { p + it }.filter { maze[it] == '.' }
             }
 
