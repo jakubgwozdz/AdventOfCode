@@ -37,7 +37,6 @@ open class DFSPathfinder<T : Any, R : Any>(
 open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
     val logging: Boolean,
     val initialStateOp: () -> R,
-    val stopOp: (R, T) -> Boolean,
     val adderOp: (R, T) -> R,
     val distanceOp: ((R) -> I),
 //    val comparator: Comparator<R> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
@@ -47,32 +46,55 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
     override fun findShortest(start: T, end: T): R? {
         add(start, initialStateOp())
         while (toVisit.isNotEmpty()) {
-            val next = pick()
-            waysOutOp(next.second, next.first).forEach {
-            }
+            val (leaf, state) = pick()
+            waysOutOp(state, leaf)
+                .also { if (logging) logWithTime("WaysOut for $leaf: $it") }
+                .forEach { next ->
+                    if (next == end) {
+                        done(next, state)
+                    } else {
+                        add(next, state)
+                    }
+                }
 
         }
+        if (logging) logWithTime("best $start->$end is $currentBest")
+
         return currentBest?.first
     }
 
     private fun add(elem: T, prevState: R) {
         val nextState = adderOp(prevState, elem)
         val distance = distanceOp(nextState)
-        if (currentBest == null || currentBest.second > distance) {
+        val c = currentBest
+        if (c == null || c.second > distance) {
             toVisit.add(
                 Triple(elem, nextState, distance)
-            ).also { if (logging) logWithTime("adding $nextState with distance $distance") }
+            )
+            if (logging) logWithTime("adding $nextState with distance $distance")
         } else if (logging) logWithTime("skipping $nextState with distance $distance, we got better result already")
     }
 
+    private fun done(elem: T, prevState: R) {
+        val nextState = adderOp(prevState, elem)
+        val distance = distanceOp(nextState)
+        val c = currentBest
+        if (c == null || c.second > distance) {
+            currentBest = nextState to distance
+            if (logging) logWithTime("FOUND $nextState with distance $distance")
+        } else if (logging) logWithTime("skipping found $nextState with distance $distance, we got better result already")
+    }
+
     private fun pick(): Pair<T, R> {
-        val closest = toVisit.first()
+        val closest = toVisit.minBy { it.third }!!
+        if (logging) logWithTime("removing $closest from $toVisit")
         toVisit.remove(closest)
+        if (logging) logWithTime("left to check later $toVisit")
         return closest.first to closest.second
     }
 
-    private val currentBest: Pair<R, I>? = null
-    private val toVisit: MutableSet<Triple<T, R, I>> = sortedSetOf(compareBy { it.third })
+    private var currentBest: Pair<R, I>? = null
+    private val toVisit: MutableCollection<Triple<T, R, I>> = mutableListOf()
 
 }
 
@@ -84,10 +106,11 @@ class BasicPathfinder<T : Any>(
     distanceOp: ((List<T>) -> Int) = { l -> l.size },
 //    comparator: Comparator<List<T>> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
     waysOutOp: (List<T>, T) -> Iterable<T>
-) : DFSPathfinder<T, List<T>>(
-    logging,
-    cache,
-    initialStateOp,
+//) : DFSPathfinder<T, List<T>>(
+) : BFSPathfinder<T, List<T>, Int>(
+    logging = logging,
+//    logging = true,
+    initialStateOp = initialStateOp,
     adderOp = adderOp,
     distanceOp = distanceOp,
     waysOutOp = { l, t -> waysOutOp(l, t).filter { it !in l } }

@@ -207,8 +207,8 @@ private fun findConnections(maze: Maze, portals: Set<Portal>, logging: Boolean =
         .mapNotNull { (start, end) ->
             if (logging) logWithTime("Testing $start->$end")
 
-            val pathfinder = BasicPathfinder<Location>(false, PathCache(logging)) { l, p ->
-                Direction.values().map { p + it }.filter { maze[it] == '.' }.filter { it !in l }
+            val pathfinder = BasicPathfinder<Location>(logging, PathCache(logging)) { l, p ->
+                Direction.values().map { p + it }.filter { maze[it] == '.' }
             }
 
             val shortestPath = if (start.code == end.code) listOf(start, end)
