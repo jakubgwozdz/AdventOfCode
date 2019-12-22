@@ -17,8 +17,11 @@ data class Portal(val location: Location, val code: String, val outer: Boolean) 
 
 }
 
-data class PortalOnLevel(val portal: Portal, val level: Int) {
+data class PortalOnLevel(val portal: Portal, val level: Int) : Comparable<PortalOnLevel> {
     override fun toString(): String = "$portal@$level"
+    override fun compareTo(other: PortalOnLevel): Int {
+        return portal.compareTo(other.portal).let { if (it == 0) level.compareTo(other.level) else it }
+    }
 }
 
 data class Connection(

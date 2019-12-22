@@ -34,7 +34,7 @@ open class DFSPathfinder<T : Any, R : Any>(
     }
 }
 
-open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
+open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
     val logging: Boolean,
     val initialStateOp: () -> R,
     val adderOp: (R, T) -> R,
@@ -86,7 +86,7 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
     }
 
     private fun pick(): Pair<T, R> {
-        val closest = toVisit.minBy { it.third }!!
+        val closest = toVisit.first()
         if (logging) logWithTime("removing $closest from $toVisit")
         toVisit.remove(closest)
         if (logging) logWithTime("left to check later $toVisit")
@@ -94,11 +94,11 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
     }
 
     private var currentBest: Pair<R, I>? = null
-    private val toVisit: MutableCollection<Triple<T, R, I>> = mutableListOf()
+    private val toVisit: MutableCollection<Triple<T, R, I>> = sortedSetOf( compareBy({it.third},{it.first}))
 
 }
 
-class BasicPathfinder<T : Any>(
+class BasicPathfinder<T : Comparable<T>>(
     logging: Boolean = false,
     cache: Cache<T, List<T>> = NoCache(),
     initialStateOp: () -> List<T> = { emptyList() },
