@@ -10,7 +10,6 @@ open class DFSPathfinder<T : Any, R : Any>(
     val logging: Boolean,
     val cache: Cache<T, R>,
     val initialStateOp: () -> R,
-    val stopOp: (R, T) -> Boolean,
     val adderOp: (R, T) -> R,
     val distanceOp: ((R) -> Int)?,
     val comparator: Comparator<R> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
@@ -28,9 +27,7 @@ open class DFSPathfinder<T : Any, R : Any>(
             .also { if (logging) logWithTime("WaysOut for $from: $it") }
             .asSequence()
             .mapNotNull { next ->
-//                if (next == end) adderOp(visited, next)
-//                else
-                    cache.computeIfAbsent(next, end) { ns, ne -> findShortestProcess(ns, ne, newVisited) }
+                cache.computeIfAbsent(next, end) { ns, ne -> findShortestProcess(ns, ne, newVisited) }
             }
             .run { if (distanceOp != null) minBy(distanceOp) else minWith(comparator) }
             ?.also { if (logging) logWithTime("found: $it") }
@@ -52,7 +49,6 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
         while (toVisit.isNotEmpty()) {
             val next = pick()
             waysOutOp(next.second, next.first).forEach {
-                //                if (stopOp(
             }
 
         }
@@ -92,7 +88,6 @@ class BasicPathfinder<T : Any>(
     logging,
     cache,
     initialStateOp,
-    stopOp = { l, t -> t in l },
     adderOp = adderOp,
     distanceOp = distanceOp,
     waysOutOp = { l, t -> waysOutOp(l, t).filter { it !in l } }
