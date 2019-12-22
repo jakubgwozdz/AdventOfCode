@@ -25,22 +25,28 @@ fun deal(deckSize: Int, input: List<String>, times: Int = 1): List<Int> {
 }
 
 fun reverse(deck: IntArray) {
+//    val oldPos = deck.indexOfFirst { it == 2019 }
     val table = IntArray(deck.size) { deck[deck.size - it - 1] }
     table.copyInto(deck)
-//    println("new stack: -> ${deck.indexOfFirst { it == 2019 }}")
+//    val newPos = deck.indexOfFirst { it == 2019 }
+//    println("new stack: $oldPos -> $newPos")
 }
 
 fun cut(deck: IntArray, i: Int) {
+//    val oldPos = deck.indexOfFirst { it == 2019 }
     val j = if (i < 0) deck.size + i else i
     val table = IntArray(deck.size) { deck[(it + j) % deck.size] }
     table.copyInto(deck)
-//    println("cut $i: -> ${deck.indexOfFirst { it == 2019 }}")
+//    val newPos = deck.indexOfFirst { it == 2019 }
+//    println("cut $i: $oldPos -> $newPos")
 }
 
 fun dealInc(deck: IntArray, increment: Int) {
+//    val oldPos = deck.indexOfFirst { it == 2019 }
     val table = IntArray(deck.size) { deck[it] }
     deck.indices.forEach { deck[it * increment % deck.size] = table[it] }
-//    println("increment $increment: -> ${deck.indexOfFirst { it == 2019 }}")
+//    val newPos = deck.indexOfFirst { it == 2019 }
+//    println("increment $increment: $oldPos -> $newPos")
 }
 
 fun main() {
