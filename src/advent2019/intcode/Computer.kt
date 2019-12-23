@@ -1,8 +1,11 @@
 package advent2019.intcode
 
 import advent2019.logWithTime
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.math.BigInteger
 import java.math.BigInteger.ZERO
 
@@ -53,7 +56,7 @@ class ChannelInBuffer(val id: Any, val channel: ReceiveChannel<BigInteger>, val 
 
 class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val logIO: Boolean = false) : OutBuffer {
     override suspend fun send(v: BigInteger) {
-        channel.send(v).also { if (logIO) println("$id --> $v") }
+        channel.also { if (logIO) print("$id --> $v...") }.send(v).also { if (logIO) println("\b\b\b done") }
     }
 
     override fun close() = channel.close()
@@ -78,9 +81,23 @@ class Computer(
     var ip: BigInteger = ZERO // instruction pointer
     var rb: BigInteger = ZERO // relative base
 
-    suspend fun read() = inBuffer.receive()
+    suspend fun read(): BigInteger {
+        val job = GlobalScope.launch {
+            delay(1000)
+            logWithTime("Computer $id waits for input> ")
+        }
+        return inBuffer.receive()
+            .also { job.cancel() }
+    }
 
-    suspend fun write(v: BigInteger) = outBuffer.send(v)
+    suspend fun write(v: BigInteger) {
+        val job = GlobalScope.launch {
+            delay(1000)
+            logWithTime("Computer $id wants to write> ")
+        }
+        outBuffer.send(v)
+        job.cancel()
+    }
 
     val operation: BigInteger get() = memory[ip]
 
