@@ -18,10 +18,14 @@ class Deck(val deckSize: Long) {
 
     fun shuffle(input: List<String>, times: Long = 1) {
         val ops = parse(input)
-        repeat(times.toInt()) { shuffleOps += ops }
+        repeat(times.toInt()) { shuffle(ops) }
     }
 
-     fun find(card: Long): Long {
+    fun shuffle(ops: List<ShuffleOp>) {
+        shuffleOps += ops
+    }
+
+    fun find(card: Long): Long {
         return shuffleOps.fold(card) { acc, op -> op.invoke(acc) }
 //        return shuffleOps.foldRight(card) { op, acc -> op.invoke(acc) }
     }
@@ -38,33 +42,43 @@ class Deck(val deckSize: Long) {
     inner class NewStackOp : ShuffleOp {
         override fun invoke(from: Long): Long {
             return (deckSize - from - 1)
-                .also { println("new stack: $from -> $it")  }
+//                .also { println("$this: $from -> $it")  }
+        }
+
+        override fun toString(): String {
+            return "NewStackOp()"
         }
     }
 
-    inner class CutOp(private val cutPos: Long) : ShuffleOp {
+    inner class CutOp(val cutPos: Long) : ShuffleOp {
         private val c = if (cutPos < 0) cutPos + deckSize else cutPos
         override fun invoke(from: Long): Long {
             return ((deckSize * 2 - c + from) % deckSize)
-                .also { println("cut $cutPos: $from -> $it")  }
 //            return ((deckSize + c + from) % deckSize)
-//                .also { println("cut $cutPos: $from -> $it")  }
+//                .also { println("$this: $from -> $it")  }
+        }
+
+        override fun toString(): String {
+            return "CutOp($cutPos)"
         }
     }
 
     private val invmodCache: MutableMap<Long, Long> = mutableMapOf()
 
-    inner class IncrementOp(private val increment: Long) : ShuffleOp {
+    inner class IncrementOp(val increment: Long) : ShuffleOp {
         val invmod by lazy {
             invmodCache.computeIfAbsent(increment) { it -> modinv(it, deckSize) } // TODO https://planetcalc.com/3298/
         }
 
         override fun invoke(from: Long): Long {
 //            return ((from * invmod) % deckSize)
-//                .also { println("increment $increment: $from -> $it")  }
             return ((from * increment) % deckSize)
-                .also { println("increment $increment: $from -> $it")  }
+//                .also { println("$this: $from -> $it")  }
 
+        }
+
+        override fun toString(): String {
+            return "IncrementOp(increment=$increment)"
         }
     }
 }
@@ -78,6 +92,21 @@ fun main() {
         .find(2019)
         .also { logWithTime("part 1: $it") }
 
+////    tests...
+//
+//    val p2deck = Deck(10007)
+//        .apply { shuffle(input) }
+//
+//    var i = 0L
+//    var j = 2020L
+//    do {
+//        j = p2deck.find(j)
+//        i++
+//        if (i % 1000 == 0L) print(".")
+//        if (i % 100000 == 0L) println(" $i")
+//    } while (j != 2020L)
+//    logWithTime("cycle: $i")
+//
 //    Deck(119315717514047)
 //        .apply { shuffle(input, 101741582076661) }
 //        .find(2020)
