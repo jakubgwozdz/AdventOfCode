@@ -53,7 +53,12 @@ deal into new stack""".lines()
     }
 
     private fun deal(i: Int, input: List<String>, times: Int = 1): String {
-        return Deck(i.toLong()).apply { shuffle(input, times.toLong()) }.deal().joinToString(" ")
+        return Deck(i.toLong()).apply { shuffle(input, times.toLong()) }.let { deck ->
+            LongArray(deck.deckSize.toInt()).apply {
+                (0 until deck.deckSize).map { this[deck.find(it).toInt()] = it }
+            }
+        }
+            .joinToString(" ")
     }
 
     val input2 = """cut 6

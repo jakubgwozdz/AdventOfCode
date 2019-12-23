@@ -1,6 +1,7 @@
 package advent2019.day22
 
 import advent2019.logWithTime
+import advent2019.modinv
 import advent2019.readAllLines
 
 val dealIncRegex = Regex("deal with increment (-?\\d+)")
@@ -20,11 +21,7 @@ class Deck(val deckSize: Long) {
         repeat(times.toInt()) { shuffleOps += ops }
     }
 
-    fun deal(): List<Long> {
-        return (0 until deckSize).map { find(it) }
-    }
-
-    fun find(card: Long): Long {
+     fun find(card: Long): Long {
         return shuffleOps.fold(card) { acc, op -> op.invoke(acc) }
 //        return shuffleOps.foldRight(card) { op, acc -> op.invoke(acc) }
     }
@@ -48,19 +45,24 @@ class Deck(val deckSize: Long) {
     inner class CutOp(private val cutPos: Long) : ShuffleOp {
         private val c = if (cutPos < 0) cutPos + deckSize else cutPos
         override fun invoke(from: Long): Long {
-            return ((deckSize + c + from) % deckSize)
+            return ((deckSize * 2 - c + from) % deckSize)
                 .also { println("cut $cutPos: $from -> $it")  }
+//            return ((deckSize + c + from) % deckSize)
+//                .also { println("cut $cutPos: $from -> $it")  }
         }
     }
 
     private val invmodCache: MutableMap<Long, Long> = mutableMapOf()
 
     inner class IncrementOp(private val increment: Long) : ShuffleOp {
-        val invmod =
-            invmodCache.computeIfAbsent(increment) { (1..deckSize).first { (it * increment) % deckSize == 1L } } // TODO https://planetcalc.com/3298/
+        val invmod by lazy {
+            invmodCache.computeIfAbsent(increment) { it -> modinv(it, deckSize) } // TODO https://planetcalc.com/3298/
+        }
 
         override fun invoke(from: Long): Long {
-            return ((from * invmod) % deckSize)
+//            return ((from * invmod) % deckSize)
+//                .also { println("increment $increment: $from -> $it")  }
+            return ((from * increment) % deckSize)
                 .also { println("increment $increment: $from -> $it")  }
 
         }
@@ -73,6 +75,11 @@ fun main() {
 
     Deck(10007)
         .apply { shuffle(input) }
-        .find(2019L)
+        .find(2019)
         .also { logWithTime("part 1: $it") }
+
+//    Deck(119315717514047)
+//        .apply { shuffle(input, 101741582076661) }
+//        .find(2020)
+//        .also { logWithTime("part 2: $it") }
 }
