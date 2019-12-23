@@ -1,58 +1,114 @@
 package advent2019.day22
 
 import advent2019.logWithTime
+import advent2019.modinv
 import advent2019.readAllLines
 
 val dealIncRegex = Regex("deal with increment (-?\\d+)")
 val newStackRegex = Regex("deal into new stack")
 val cutRegex = Regex("cut (-?\\d+)")
 
+interface ShuffleOp {
+    fun invoke(from: Long): Long
+}
 
-fun deal(deckSize: Int, input: List<String>, times: Int = 1): List<Int> {
+class Deck(val deckSize: Long) {
 
-    val deck = IntArray(deckSize) { it }
+    val shuffleOps: MutableList<ShuffleOp> = mutableListOf()
 
-    repeat(times) {
-        input.forEach {
-            dealIncRegex.matchEntire(it)?.destructured?.run { dealInc(deck, component1().toInt()) }
-                ?: newStackRegex.matchEntire(it)?.destructured?.run { reverse(deck) }
-                ?: cutRegex.matchEntire(it)?.destructured?.run { cut(deck, component1().toInt()) }
-                ?: error("'$it' is not proper")
+    fun shuffle(input: List<String>, times: Long = 1) {
+        val ops = parse(input)
+        repeat(times.toInt()) { shuffle(ops) }
+    }
+
+    fun shuffle(ops: List<ShuffleOp>) {
+        shuffleOps += ops
+    }
+
+    fun find(card: Long): Long {
+        return shuffleOps.fold(card) { acc, op -> op.invoke(acc) }
+//        return shuffleOps.foldRight(card) { op, acc -> op.invoke(acc) }
+    }
+
+    fun parse(input: List<String>): List<ShuffleOp> {
+        return input.map {
+            dealIncRegex.matchEntire(it)?.destructured?.run { IncrementOp(component1().toLong()) }
+                ?: newStackRegex.matchEntire(it)?.destructured?.run { NewStackOp() }
+                ?: cutRegex.matchEntire(it)?.destructured?.run { CutOp(component1().toLong()) }
+                ?: error("'$it' is not proper op")
         }
     }
-    return deck.toList()
 
-}
+    inner class NewStackOp : ShuffleOp {
+        override fun invoke(from: Long): Long {
+            return (deckSize - from - 1)
+//                .also { println("$this: $from -> $it")  }
+        }
 
-fun reverse(deck: IntArray) {
-//    val oldPos = deck.indexOfFirst { it == 2019 }
-    val table = IntArray(deck.size) { deck[deck.size - it - 1] }
-    table.copyInto(deck)
-//    val newPos = deck.indexOfFirst { it == 2019 }
-//    println("new stack: $oldPos -> $newPos")
-}
+        override fun toString(): String {
+            return "NewStackOp()"
+        }
+    }
 
-fun cut(deck: IntArray, i: Int) {
-//    val oldPos = deck.indexOfFirst { it == 2019 }
-    val j = if (i < 0) deck.size + i else i
-    val table = IntArray(deck.size) { deck[(it + j) % deck.size] }
-    table.copyInto(deck)
-//    val newPos = deck.indexOfFirst { it == 2019 }
-//    println("cut $i: $oldPos -> $newPos")
-}
+    inner class CutOp(val cutPos: Long) : ShuffleOp {
+        private val c = if (cutPos < 0) cutPos + deckSize else cutPos
+        override fun invoke(from: Long): Long {
+            return ((deckSize * 2 - c + from) % deckSize)
+//            return ((deckSize + c + from) % deckSize)
+//                .also { println("$this: $from -> $it")  }
+        }
 
-fun dealInc(deck: IntArray, increment: Int) {
-//    val oldPos = deck.indexOfFirst { it == 2019 }
-    val table = IntArray(deck.size) { deck[it] }
-    deck.indices.forEach { deck[it * increment % deck.size] = table[it] }
-//    val newPos = deck.indexOfFirst { it == 2019 }
-//    println("increment $increment: $oldPos -> $newPos")
+        override fun toString(): String {
+            return "CutOp($cutPos)"
+        }
+    }
+
+    private val invmodCache: MutableMap<Long, Long> = mutableMapOf()
+
+    inner class IncrementOp(val increment: Long) : ShuffleOp {
+        val invmod by lazy {
+            invmodCache.computeIfAbsent(increment) { it -> modinv(it, deckSize) } // TODO https://planetcalc.com/3298/
+        }
+
+        override fun invoke(from: Long): Long {
+//            return ((from * invmod) % deckSize)
+            return ((from * increment) % deckSize)
+//                .also { println("$this: $from -> $it")  }
+
+        }
+
+        override fun toString(): String {
+            return "IncrementOp(increment=$increment)"
+        }
+    }
 }
 
 fun main() {
 
     val input = readAllLines("input-2019-22.txt")
 
-    deal(10007, input).indexOfFirst { it == 2019 }
+    Deck(10007)
+        .apply { shuffle(input) }
+        .find(2019)
         .also { logWithTime("part 1: $it") }
+
+////    tests...
+//
+//    val p2deck = Deck(10007)
+//        .apply { shuffle(input) }
+//
+//    var i = 0L
+//    var j = 2020L
+//    do {
+//        j = p2deck.find(j)
+//        i++
+//        if (i % 1000 == 0L) print(".")
+//        if (i % 100000 == 0L) println(" $i")
+//    } while (j != 2020L)
+//    logWithTime("cycle: $i")
+//
+//    Deck(119315717514047)
+//        .apply { shuffle(input, 101741582076661) }
+//        .find(2020)
+//        .also { logWithTime("part 2: $it") }
 }
