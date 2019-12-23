@@ -108,12 +108,29 @@ suspend fun nodelay() {
 class NIC(val id: BigInteger, program: Memory) {
 
     val inChannel = Channel<BigInteger>(Channel.UNLIMITED)
-    val inBuffer = object : InBuffer {
+    val inBuffer = NonblockingInBuffer(program)
+
+    val outChannel = Channel<BigInteger>()
+    val comp = Computer(id, program, inBuffer, ChannelOutBuffer(id, outChannel))
+
+    fun memCpy() = comp.memory.copy().map
+
+    inner class NonblockingInBuffer(initial: Memory):InBuffer {
         var lastEmpty = false
         var nextRequired = true
+
+        var lastMemory = initial.map
+        var lastIp = 0.bi
+
         override suspend fun receive(): BigInteger = if (!nextRequired && inChannel.isEmpty) {
-//            if (!lastEmpty)
+            if (!lastEmpty) {
+                val currMemory = memCpy()
+                val currIp = comp.ip
+                println("      $id's memory changed? ${currMemory != lastMemory} ; oldPos: $lastIp ; newPos: $currIp")
+                lastIp = currIp
+                lastMemory = currMemory
 //                println("         $id's input empty")
+            }
             lastEmpty = true
             nodelay()
             suspendCoroutine<BigInteger> { it.resume((-1).bi) }
@@ -124,8 +141,7 @@ class NIC(val id: BigInteger, program: Memory) {
             inChannel.receive()
 //                .also { println("\b\b\b$it") }
         }
+
     }
-    val outChannel = Channel<BigInteger>()
-    val comp = Computer(id, program, inBuffer, ChannelOutBuffer(id, outChannel))
 
 }
