@@ -1,5 +1,6 @@
 package advent2019.intcode
 
+//import advent2019.Queue
 import advent2019.logWithTime
 import advent2019.nodelay
 import advent2019.remove
@@ -11,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.math.BigInteger
 import java.math.BigInteger.ZERO
+import java.util.*
 
 class Memory(initial: Map<BigInteger, BigInteger>) {
     val map = initial.toMutableMap()
@@ -58,27 +60,27 @@ class ChannelInBuffer<T>(val id: Any, val channel: ReceiveChannel<T>, val logIO:
 }
 
 @ExperimentalCoroutinesApi
-class TranslatingNonblockingInBuffer<T, R : Any>(
-    val id: Any,
-    val channel: ReceiveChannel<T>,
-    val idleAnswer: R,
+class TranslatingNonblockingInBuffer<T : Any, P:Any, I:Any>(
+    val id: I,
+    val channel: ReceiveChannel<P>,
     val logIO: Boolean = false,
-    val translateOp: (T) -> List<R>
-) : InBuffer<R> {
+    val idleAnswerOp: suspend () -> List<T>,
+    val translateOp: suspend (P) -> List<T>
+) : InBuffer<T> {
 
-    val buffer: MutableList<R> = mutableListOf() // LinkedList better?
+    val buffer: MutableList<T> = LinkedList() // LinkedList better?
 
-    override suspend fun receive(): R {
+    override suspend fun receive(): T {
         delay(100)
         return buffer.remove()
             ?: if (channel.isEmpty) {
                 nodelay() // suspend here for a moment so other threads may work - TODO make in look nicer
-                idleAnswer
+                buffer += idleAnswerOp()
+                buffer.remove()!!
             } else {
                 val packet = channel.receive()
                     .also { if (logIO) println("                          $id received $it") }
-                val result = translateOp(packet)
-                buffer += result
+                buffer += translateOp(packet)
                 buffer.remove()!!
             }
     }
