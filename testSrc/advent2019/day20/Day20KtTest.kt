@@ -182,7 +182,7 @@ RE....#.#                           #......RF
 
     @Test
     fun testInputPt1() {
-        val input = readAllLines("input-2019-20.txt")
+        val input = readAllLines("data/input-2019-20.txt")
         val donut = Donut(input)
 
         expect (696) {
@@ -193,7 +193,7 @@ RE....#.#                           #......RF
 
     @Test
     fun testInputPt2() {
-        val input = readAllLines("input-2019-20.txt")
+        val input = readAllLines("data/input-2019-20.txt")
         val donut = Donut(input)
 
         expect (7538) {

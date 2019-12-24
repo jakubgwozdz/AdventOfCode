@@ -18,7 +18,7 @@ import kotlin.system.measureTimeMillis
 @ExperimentalStdlibApi
 fun main() {
     measureTimeMillis {
-        val input = readAllLines("input-2019-17.txt").single()
+        val input = readAllLines("data/input-2019-17.txt").single()
             .also { logWithTime("Program length (chars): ${it.length}") }
 
         val program1 = parse(input)

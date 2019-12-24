@@ -4,7 +4,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 fun main() {
-    val sum = Files.readAllLines(Paths.get("input-2019-01.txt"))
+    val sum = Files.readAllLines(Paths.get("data/input-2019-01.txt"))
         .asSequence()
         .map { it.toInt() }
 //        .map { it to fuel(it) } // first star

@@ -85,7 +85,7 @@ class Deck(val deckSize: Long) {
 
 fun main() {
 
-    val input = readAllLines("input-2019-22.txt")
+    val input = readAllLines("data/input-2019-22.txt")
 
     Deck(10007)
         .apply { shuffle(input) }

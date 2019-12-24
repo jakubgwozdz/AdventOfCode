@@ -13,7 +13,7 @@ import java.math.BigInteger.ONE
 
 fun main() {
 
-    val programStr = readAllLines("input-2019-09.txt").first()
+    val programStr = readAllLines("data/input-2019-09.txt").first()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
     run1(programStr, listOf(ONE))

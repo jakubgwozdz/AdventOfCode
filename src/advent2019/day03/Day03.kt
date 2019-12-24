@@ -6,7 +6,7 @@ import java.time.Instant
 import kotlin.math.absoluteValue
 
 fun main() {
-    val input = Files.readAllLines(Paths.get("input-2019-03.txt"))
+    val input = Files.readAllLines(Paths.get("data/input-2019-03.txt"))
         .also { println("${Instant.now()}: data loaded") }
     val first = input.first()
     val second = input.drop(1).first()

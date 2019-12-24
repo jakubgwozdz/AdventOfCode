@@ -16,7 +16,7 @@ import java.math.BigInteger
 
 fun main() {
 
-    val program = readAllLines("input-2019-13.txt").single()
+    val program = readAllLines("data/input-2019-13.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
     logWithTime("Part1: Blocks: ${part1(program)}")

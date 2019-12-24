@@ -234,7 +234,7 @@ private fun findConnections(maze: Maze, portals: Set<Portal>, logging: Boolean =
 
 
 fun main() {
-    val input = readAllLines("input-2019-20.txt")
+    val input = readAllLines("data/input-2019-20.txt")
         .also { logWithTime("Maze size: ${it.sumBy(String::length)}") }
     val donut = Donut(input)
 

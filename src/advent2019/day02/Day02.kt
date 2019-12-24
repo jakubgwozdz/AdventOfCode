@@ -22,7 +22,7 @@ fun main() {
 }
 
 fun run(noun: Int, verb: Int): IntArray {
-    val input = Files.readString(Paths.get("input-2019-02.txt"))
+    val input = Files.readString(Paths.get("data/input-2019-02.txt"))
     val program = parse(input)
 
     program[1] = noun

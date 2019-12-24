@@ -12,7 +12,7 @@ import java.math.BigInteger
 
 fun main() {
 
-    val programStr = readAllLines("input-2019-07.txt").first()
+    val programStr = readAllLines("data/input-2019-07.txt").first()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
     permutations(5)

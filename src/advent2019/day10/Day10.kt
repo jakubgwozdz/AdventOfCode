@@ -8,7 +8,7 @@ import kotlin.math.atan2
 import kotlin.math.sign
 
 fun main() {
-    val lines = readAllLines("input-2019-10.txt")
+    val lines = readAllLines("data/input-2019-10.txt")
         .also { logWithTime("read ${it.size} lines") }
     var asteroids = parseAsteroids(lines)
         .also { logWithTime("found ${it.size} asteroids") }

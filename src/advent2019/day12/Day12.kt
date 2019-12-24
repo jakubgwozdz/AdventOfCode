@@ -64,7 +64,7 @@ data class State<V : Vector<V>>(val locations: List<V>, val velocities: List<V>)
 
 
 fun main() {
-    val input = readAllLines("input-2019-12.txt")
+    val input = readAllLines("data/input-2019-12.txt")
 //    val input = "<x=-1, y=0, z=2>\n<x=2, y=-10, z=-7>\n<x=4, y=-8, z=8>\n<x=3, y=5, z=-1>".lines()
 
     phase1(input, 1000)

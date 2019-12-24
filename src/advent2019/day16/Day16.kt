@@ -5,7 +5,7 @@ import advent2019.logWithTime
 import advent2019.readAllLines
 
 fun main() {
-    val input = readAllLines("input-2019-16.txt").single()
+    val input = readAllLines("data/input-2019-16.txt").single()
         .also { logWithTime("input length: ${it.length}") }
     fft(input, 100).take(8)
         .also { logWithTime("part 1: $it") }

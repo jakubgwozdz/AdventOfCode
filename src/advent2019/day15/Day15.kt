@@ -15,7 +15,7 @@ import java.math.BigInteger.ZERO
 
 fun main() {
 
-    val program = readAllLines("input-2019-15.txt").single()
+    val program = readAllLines("data/input-2019-15.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
     val memory = parse(program)

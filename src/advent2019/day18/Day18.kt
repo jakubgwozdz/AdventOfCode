@@ -142,7 +142,7 @@ fun shortestDistanceTo(
 
 
 fun main() {
-    val input = readAllLines("input-2019-18.txt")
+    val input = readAllLines("data/input-2019-18.txt")
     moves(input)
         .also { logWithTime("part 1: $it") }
 }

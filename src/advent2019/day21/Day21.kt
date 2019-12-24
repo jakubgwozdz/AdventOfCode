@@ -18,7 +18,7 @@ import java.math.BigInteger
 
 @FlowPreview
 fun main() {
-    val input = readAllLines("input-2019-21.txt").single()
+    val input = readAllLines("data/input-2019-21.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
     goSpring(input, spring1())

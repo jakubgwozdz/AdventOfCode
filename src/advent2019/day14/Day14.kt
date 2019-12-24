@@ -4,7 +4,7 @@ import advent2019.logWithTime
 import advent2019.readAllLines
 
 fun main() {
-    val input = readAllLines("input-2019-14.txt")
+    val input = readAllLines("data/input-2019-14.txt")
     val reactions = parseReactions(input)
 
     calculate("ORE", 1 of "FUEL", reactions)

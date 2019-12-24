@@ -17,7 +17,8 @@ fi
 YEAR=$(date +%Y)
 COOKIE=$(cat .cookie)
 
-curl -H "Cookie: session=$COOKIE" "https://adventofcode.com/$YEAR/day/$DAY/input" -o "input-$YEAR-$PADDAY.txt"
+curl -H "Cookie: session=$COOKIE" "https://adventofcode.com/$YEAR/day/$DAY/input" -o "data/input-$YEAR-$PADDAY.txt"
+curl -H "Cookie: session=$COOKIE" "https://adventofcode.com/$YEAR/day/$DAY" -o "data/puzzle-$YEAR-$PADDAY.html"
 
 PKGDIR=advent$YEAR/day$PADDAY
 FILE=src/$PKGDIR/Day$PADDAY.kt

@@ -19,7 +19,7 @@ import kotlin.coroutines.suspendCoroutine
 @ExperimentalCoroutinesApi
 fun main() {
 
-    val input = readAllLines("input-2019-23.txt").single()
+    val input = readAllLines("data/input-2019-23.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
         .also { disassemblyProgram(it).forEach { println(it) }}
 

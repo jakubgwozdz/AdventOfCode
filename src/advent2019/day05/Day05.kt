@@ -5,7 +5,7 @@ import advent2019.readAllLines
 
 fun main() {
 
-    val programStr = readAllLines("input-2019-05.txt").first()
+    val programStr = readAllLines("data/input-2019-05.txt").first()
 
     // part 1
     val output1 = run(programStr, listOf(1))

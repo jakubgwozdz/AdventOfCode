@@ -6,7 +6,7 @@ import advent2019.readAllLines
 fun main() {
     val width = 25
     val height = 6
-    val file = "input-2019-08.txt"
+    val file = "data/input-2019-08.txt"
 
     val layers = readAllLines(file).single()
         .chunked(width * height) { it.toList() }

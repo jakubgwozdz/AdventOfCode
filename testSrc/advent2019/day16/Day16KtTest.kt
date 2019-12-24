@@ -102,7 +102,7 @@ internal class Day16KtTest {
     @Test
     internal fun testPart1Input() {
         expect("73127523") {
-            fft(readAllLines("input-2019-16.txt").single(), 100).take(8)
+            fft(readAllLines("data/input-2019-16.txt").single(), 100).take(8)
         }
     }
 

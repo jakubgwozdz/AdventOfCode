@@ -125,7 +125,7 @@ cut -1""".lines()
     @Test
     fun part1() {
         expect(8775L) {
-            val input = readAllLines("input-2019-22.txt")
+            val input = readAllLines("data/input-2019-22.txt")
 
             Deck(10007)
                 .apply { shuffle(input) }
