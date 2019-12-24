@@ -1,28 +1,38 @@
 package advent2019.day02
 
-import java.nio.file.Files
-import java.nio.file.Paths
+import advent2019.logWithTime
+import advent2019.readAllLines
 
 fun main() {
 
+    val input = readAllLines("data/input-2019-02.txt").single()
+        .also { logWithTime("input length: ${it.length}") }
+
+
     // part 1
-    val result = run(12, 2)
-    println(result[0])
+    part1(input)
+        .also { logWithTime("part1: $it") }
 
     // part 2
-    (0..99).forEach { noun ->
-        (0..99).forEach { verb ->
-            val result2 = run(noun, verb)
-//            if (noun == 12 && verb == 2) println("${100 * noun + verb}: ${result2[0]}")
-            if (result2[0] == 19690720) println("${100 * noun + verb}: ${result2[0]}")
-        }
-
-    }
-
+    part2(input)
+        .also { logWithTime("part2: $it") }
 }
 
-fun run(noun: Int, verb: Int): IntArray {
-    val input = Files.readString(Paths.get("data/input-2019-02.txt"))
+fun part1(input: String): Int = run(12, 2, input)[0]
+
+fun part2(input: String): Int = (0..99)
+    .flatMap { noun ->
+        (0..99).map { verb ->
+            val result2 = run(noun, verb, input)
+            (noun to verb) to result2
+        }
+    }
+    .single { (input, output) -> output[0] == 19690720 }
+    .let { (input, output) -> input}
+    .let { (noun, verb) -> 100 * noun + verb }
+
+
+fun run(noun: Int, verb: Int, input: String): IntArray {
     val program = parse(input)
 
     program[1] = noun
