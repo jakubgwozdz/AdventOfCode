@@ -6,14 +6,9 @@ import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.*
 import java.math.BigInteger
 import kotlin.coroutines.ContinuationInterceptor
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 @FlowPreview
 @ExperimentalCoroutinesApi
@@ -21,45 +16,35 @@ fun main() {
 
     val input = readAllLines("data/input-2019-23.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
-        .also { disassemblyProgram(it).forEach { println(it) }}
+//        .also { disassemblyProgram(it).forEach { println(it) } }
 
     val program = parse(input)
 
-    val nics = (0 until 50).map {
-        NIC(it.toBigInteger(), program)
-    }.associateBy { it.id }
+    val nics = (0 until 50)
+//        .shuffled()
+        .map {
+            NIC(it.toBigInteger(), program.copy())
+        }
+        .associateBy { it.id }
 
     runBlocking {
 
-        // init
-        val outputJobs = nics.values.map { nic ->
-            nic.id to launch {
-                nic.inChannel.send(nic.id)
+        val resultChannel = Channel<Packet>()
 
-                while (true) {
-                    logWithTime("waiting for ${nic.id}...")
-                    val addr = nic.outChannel.receive()
-                    logWithTime("${nic.id} sent addr $addr")
-                    val x = nic.outChannel.receive()
-                    logWithTime("${nic.id} sent x $x")
-                    val y = nic.outChannel.receive()
-                    logWithTime("${nic.id} sent y $y")
-                    nics[addr]!!.inChannel.apply {
-                        send(x)
-                        send(y)
-                        logWithTime("sent $x $y to $addr")
+        // init
+        val outputJobs = nics.values.shuffled().map { nic ->
+            nic.id to launch {
+                nic.outChannel.consumeAsFlow()
+                    .asPackets()
+                    .collect {
+                        println("${nic.id} sends $it")
+                        val addr = it.first
+                        val packet = it.second
+                        (nics[addr]?.inChannel
+                            ?: (if (addr == 255.bi) resultChannel else error("unknown NIC $addr"))
+                                ).send(packet)
                     }
-//                nic.outChannel.consumeAsFlow()
-//                    .asPackets()
-//                    .onEach {
-//                        println(it)
-//                        nics[it.first]!!.inChannel.apply {
-//                            send(it.second)
-//                            send(it.third)
-//                        }
-//                    }
-//                    .collect { println("${nic.id} got $it") }
-                }
+//                }
             }
         }.toMap()
 
@@ -74,72 +59,70 @@ fun main() {
 
         logWithTime("NICs started")
 
-        joinAll()
+        val result = resultChannel.receive()
+        this.coroutineContext.cancelChildren()
 
-    }
+        result
+    }.also { logWithTime("part 1: ${it.second}") }
 
 }
 
+typealias Packet = Pair<BigInteger, BigInteger>
+typealias AddressedPacket = Pair<BigInteger, Packet>
 
-fun Flow<BigInteger>.asPackets(): Flow<Triple<BigInteger, BigInteger, BigInteger>> =
+fun Flow<BigInteger>.asPackets(): Flow<AddressedPacket> =
 
     flow {
         val packet = mutableListOf<BigInteger>()
         collect {
             packet += it
             if (packet.size == 3) {
-                emit(Triple(packet[0], packet[1], packet[2]))
+                emit(packet[0] to (packet[1] to packet[2]))
                 packet.clear()
             }
         }
     }
 
-/** Returns [Delay] implementation of the given context */
-internal val CoroutineContext.delay: Delay get() = get(ContinuationInterceptor)!! as Delay
-
 suspend fun nodelay() {
 //    if (timeMillis <= 0) return // don't delay
-    return suspendCancellableCoroutine sc@ { cont: CancellableContinuation<Unit> ->
-        cont.context.delay.scheduleResumeAfterDelay(0, cont)
+    return suspendCancellableCoroutine { cont: CancellableContinuation<Unit> ->
+        (cont.context[ContinuationInterceptor]!! as Delay).scheduleResumeAfterDelay(0, cont)
     }
 }
 
 @ExperimentalCoroutinesApi
 class NIC(val id: BigInteger, program: Memory) {
 
-    val inChannel = Channel<BigInteger>(Channel.UNLIMITED)
-    val inBuffer = NonblockingInBuffer(program)
+    val inChannel = Channel<Packet>(Channel.UNLIMITED)
+    val inBuffer = NonblockingInBuffer()
 
     val outChannel = Channel<BigInteger>()
     val comp = Computer(id, program, inBuffer, ChannelOutBuffer(id, outChannel))
 
     fun memCpy() = comp.memory.copy().map
 
-    inner class NonblockingInBuffer(initial: Memory):InBuffer {
+    var lastMemory = program.copy().map
+    var lastIp = 0.bi
+
+    inner class NonblockingInBuffer : InBuffer {
         var lastEmpty = false
         var nextRequired = true
+        var buffer: BigInteger? = id
 
-        var lastMemory = initial.map
-        var lastIp = 0.bi
-
-        override suspend fun receive(): BigInteger = if (!nextRequired && inChannel.isEmpty) {
-            if (!lastEmpty) {
-                val currMemory = memCpy()
-                val currIp = comp.ip
-                println("      $id's memory changed? ${currMemory != lastMemory} ; oldPos: $lastIp ; newPos: $currIp")
-                lastIp = currIp
-                lastMemory = currMemory
-//                println("         $id's input empty")
-            }
-            lastEmpty = true
-            nodelay()
-            suspendCoroutine<BigInteger> { it.resume((-1).bi) }
-        } else {
-            nextRequired = !nextRequired
-            lastEmpty = false
-//            print("         $id <-- ...")
-            inChannel.receive()
-//                .also { println("\b\b\b$it") }
+        override suspend fun receive(): BigInteger {
+            return buffer
+//                ?.also { println("$id received $it") }
+                ?.also { buffer = null }
+                ?: if (inChannel.isEmpty) {
+                    nodelay() // suspend here for a moment so other threads may work - TODO make in look nicer
+                    (-1).bi
+                } else {
+                    val packet = inChannel.receive()
+                        .also { println("                          $id received $it") }
+                    buffer = packet.second
+                    packet.first
+//                        .also { println("$id received $it") }
+                }
         }
 
     }
