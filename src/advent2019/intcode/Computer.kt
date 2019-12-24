@@ -1,6 +1,9 @@
 package advent2019.intcode
 
 import advent2019.logWithTime
+import advent2019.nodelay
+import advent2019.remove
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
@@ -37,8 +40,8 @@ fun nthParamMode(n: Int, operation: BigInteger): ParamMode {
     }
 }
 
-interface InBuffer {
-    suspend fun receive(): BigInteger
+interface InBuffer<T> {
+    suspend fun receive(): T
 }
 
 interface OutBuffer {
@@ -46,13 +49,41 @@ interface OutBuffer {
     fun close(): Boolean
 }
 
-class ChannelInBuffer(val id: Any, val channel: ReceiveChannel<BigInteger>, val logIO: Boolean = false) : InBuffer {
-    override suspend fun receive(): BigInteger {
+class ChannelInBuffer<T>(val id: Any, val channel: ReceiveChannel<T>, val logIO: Boolean = false) :
+    InBuffer<T> {
+    override suspend fun receive(): T {
         if (logIO) print("$id <-- ...")
         return channel.receive().also { if (logIO) println("\b\b\b$it") }
     }
-
 }
+
+@ExperimentalCoroutinesApi
+class TranslatingNonblockingInBuffer<T, R : Any>(
+    val id: Any,
+    val channel: ReceiveChannel<T>,
+    val idleAnswer: R,
+    val logIO: Boolean = false,
+    val translateOp: (T) -> List<R>
+) : InBuffer<R> {
+
+    val buffer: MutableList<R> = mutableListOf() // LinkedList better?
+
+    override suspend fun receive(): R {
+        delay(100)
+        return buffer.remove()
+            ?: if (channel.isEmpty) {
+                nodelay() // suspend here for a moment so other threads may work - TODO make in look nicer
+                idleAnswer
+            } else {
+                val packet = channel.receive()
+                    .also { if (logIO) println("                          $id received $it") }
+                val result = translateOp(packet)
+                buffer += result
+                buffer.remove()!!
+            }
+    }
+}
+
 
 class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val logIO: Boolean = false) : OutBuffer {
     override suspend fun send(v: BigInteger) {
@@ -63,10 +94,11 @@ class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val lo
 
 }
 
+
 class Computer(
     val id: Any,
     val memory: Memory,
-    val inBuffer: InBuffer,
+    val inBuffer: InBuffer<BigInteger>,
     val outBuffer: OutBuffer,
     val debug: Boolean = false
 ) {

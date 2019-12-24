@@ -52,7 +52,7 @@ fun part2(program: String): Int {
     return runBlocking {
         val tiles = mutableMapOf<Pair<Int, Int>, Int>()
         val output = Channel<BigInteger>(Channel.UNLIMITED)
-        val input = object : InBuffer {
+        val input = object : InBuffer<BigInteger> {
             override suspend fun receive(): BigInteger {
                 return updateGame(tiles, output).toBigInteger()
             }

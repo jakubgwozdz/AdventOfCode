@@ -49,6 +49,7 @@ internal class Day16KtTest {
     }
 
     @Test
+    @Disabled
     internal fun testPart2b() {
         Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10)) {
             expect("84462026") { fftRepeat("03036732577212944063491565474664", 10000, 100, 303673, 8) }
