@@ -6,7 +6,6 @@ import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.consume
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -47,7 +46,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
             // init
             val outputJobs = nics.values.shuffled().map { nic ->
-                nic.id to launch {
+                nic.id to launch(Dispatchers.Default) {
                     nic.outChannel.consumeAsFlow()
                         .asPackets()
                         .collect {
@@ -65,7 +64,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
             // boot
             val jobs = nics.values.map { nic ->
-                nic.id to launch {
+                nic.id to launch(Dispatchers.Default) {
                     nic.comp.run()
                 }
             }.toMap()
@@ -83,14 +82,14 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
     fun puzzlePart2(): BigInteger {
 
-        val nat = Channel<Packet>(Channel.CONFLATED)
+        val nat = Channel<Packet>()
         val resultChannel = Channel<Packet>()
 
-        val stateChangedChannel = Channel<Pair<BigInteger, Boolean>>(Channel.UNLIMITED)
+        val stateChangedChannel = Channel<Pair<BigInteger, Boolean>>()
 
         val nics = (0 until 50)
             .map { id ->
-                NIC(id.toBigInteger(), program.copy()) { id1, idle -> stateChangedChannel.send(id1 to idle) }
+                NIC(id.toBigInteger(), program.copy())
             }
             .associateBy { it.id }
 
@@ -98,7 +97,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
             // init
             val outputJobs = nics.values.shuffled().map { nic ->
-                nic.id to launch {
+                nic.id to launch() {
                     nic.outChannel.consumeAsFlow()
                         .asPackets()
                         .collect {
@@ -116,30 +115,55 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
             // boot
             val jobs = nics.values.map { nic ->
-                nic.id to launch {
+                nic.id to launch(Dispatchers.Default) {
                     nic.comp.run()
                 }
             }.toMap()
 
             if (logging) logWithTime("NICs started")
 
-            var lastNated: Packet? = null
+            val lastNatPacketChannel = Channel<Packet>(Channel.CONFLATED)
+            var lastNatPacketSent: Packet? = null
 
-            launch {
-                stateChangedChannel.consumeEach { (id, idle) ->
-//                    println("${(if (idle) "$id went idle" else "$id received data").padEnd(20)}: ${nics.values.map { if (it.isIdle) "#" else "." }}")
-                    if (idle) {
-                        if (nics.values.all { it.isIdle }) {
-                            val v = nat.receive()
-                                .also { logWithTime("NAT received $it...") }
-                            if (lastNated == v) {
-                                logWithTime("...it's same as previously")
-                                resultChannel.send(v)
-                            }
-                            lastNated = v
-                            nics[0.bi]!!.inChannel.send(v)
+            val natChannel = launch() {
+                nat.consumeEach { packet ->
+                    lastNatPacketChannel.send(packet)
+                        .also { logWithTime("NAT received $packet...") }
+                }
+            }
+
+            val natJob = launch() {
+                while (true) {
+                    delay(300)
+                    if (nics.values.all { it.isIdle }) {
+                        val lastNatPacketReceived = lastNatPacketChannel.receive()
+                        logWithTime("NAT sends $lastNatPacketReceived...")
+                        nics[0.bi]!!.inChannel.send(lastNatPacketReceived)
+                        if (lastNatPacketReceived == lastNatPacketSent) {
+                            logWithTime("...it's same as previously")
+                            resultChannel.send(lastNatPacketSent!!)
                         }
+                        lastNatPacketSent = lastNatPacketReceived
                     }
+                }
+            }
+
+            val idles = nics.mapValues { false }.toMutableMap()
+            val stateChangedJob = launch() {
+                stateChangedChannel.consumeEach { (id, idle) ->
+                    idles[id] = idle
+//                    if (idle) {
+//                        if (idles.all { it.value }) {
+//                            val lastNatPacketReceived = lastNatPacketChannel.receive()
+//                            logWithTime("NAT sends $lastNatPacketReceived...")
+//                            nics[0.bi]!!.inChannel.send(lastNatPacketReceived)
+//                            if (lastNatPacketReceived == lastNatPacketSent) {
+//                                logWithTime("...it's same as previously")
+//                                resultChannel.send(lastNatPacketSent!!)
+//                            }
+//                            lastNatPacketSent = lastNatPacketReceived
+//                        }
+//                    }
                 }
             }
 
@@ -171,17 +195,17 @@ fun Flow<BigInteger>.asPackets(): Flow<AddressedPacket> = flow {
 class NIC(
     val id: BigInteger,
     program: Memory,
-    val stateChangedCallback: suspend (BigInteger, Boolean) -> Unit = { _, _ -> }
+    val stateChangedChannel: Channel<Pair<BigInteger, Boolean>> = Channel(Channel.CONFLATED)
 ) {
 
     var isIdle = false
-    val idleValue = listOf((-1).bi)
+    private val idleValue = listOf((-1).bi)
 
     private val idleAnswerOp: suspend () -> List<BigInteger> = {
-        listOf((-1).bi)
+        idleValue
             .also {
                 isIdle = true
-                stateChangedCallback(id, isIdle)
+                stateChangedChannel.send(id to isIdle)
             }
     }
 
@@ -189,7 +213,7 @@ class NIC(
         listOf(it.first, it.second)
             .also {
                 isIdle = false
-                stateChangedCallback(id, isIdle)
+                stateChangedChannel.send(id to isIdle)
             }
     }
 

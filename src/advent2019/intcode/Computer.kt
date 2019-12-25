@@ -74,7 +74,7 @@ class TranslatingNonblockingInBuffer<T : Any, P:Any, I:Any>(
         delay(100)
         return buffer.remove()
             ?: if (channel.isEmpty) {
-                nodelay() // suspend here for a moment so other threads may work - TODO make in look nicer
+//                nodelay() // suspend here for a moment so other threads may work - TODO make in look nicer
                 buffer += idleAnswerOp()
                 buffer.remove()!!
             } else {
