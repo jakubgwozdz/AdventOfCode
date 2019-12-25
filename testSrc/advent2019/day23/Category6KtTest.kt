@@ -1,12 +1,9 @@
 package advent2019.day23
 
 import advent2019.bi
-import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.expect
 

@@ -25,11 +25,12 @@ fun <T> AssertBuilder<out Collection<T>>.hasElements(expected: Collection<T>) {
     if (actual == expected) return
     val eNotA = expected - actual
     val aNotE = actual - expected
-    val message = """Collection has ${actual.size-aNotE.size} expected elements, but also ${aNotE.size} more, and not ${eNotA.size} expected:
+    val message =
+        """Collection has ${actual.size - aNotE.size} expected elements, but also ${aNotE.size} more, and not ${eNotA.size} expected:
         |  Actual: $aNotE
         |Expected: $eNotA""".trimMargin()
     throw AssertionError(message)
 
 }
 
-fun <T> expectSetOf(vararg v:T, op:()->Iterable<T>) = expect(v.toSet()) { op().toSet() }
+fun <T> expectSetOf(vararg v: T, op: () -> Iterable<T>) = expect(v.toSet()) { op().toSet() }

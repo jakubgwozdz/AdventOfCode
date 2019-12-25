@@ -1,7 +1,5 @@
 package advent2019.day02
 
-import advent2019.bi
-import advent2019.day23.Category6
 import advent2019.readAllLines
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout

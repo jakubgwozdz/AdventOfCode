@@ -95,7 +95,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
             // init
             val outputJobs = nics.values.shuffled().map { nic ->
-                nic.id to launch() {
+                nic.id to launch {
                     nic.outChannel.consumeAsFlow()
                         .asPackets()
                         .collect {
@@ -122,14 +122,14 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
             val lastNatPacketChannel = Channel<Packet>(Channel.CONFLATED)
 
-            val natChannel = launch() {
+            val natChannel = launch {
                 nat.consumeEach { packet ->
                     lastNatPacketChannel.send(packet)
                         .also { logWithTime("NAT received $packet...") }
                 }
             }
 
-            val natJob = launch() {
+            val natJob = launch {
                 var lastNatPacketSent: Packet? = null
                 while (true) {
                     delay(300)
@@ -139,7 +139,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
                         nics[0.bi]!!.inChannel.send(lastNatPacketReceived)
                         if (lastNatPacketReceived == lastNatPacketSent) {
                             if (logging) logWithTime("...it's same as previously")
-                            resultChannel.send(lastNatPacketSent!!)
+                            resultChannel.send(lastNatPacketSent)
                         }
                         lastNatPacketSent = lastNatPacketReceived
                     }
