@@ -74,7 +74,7 @@ val regex1 = Regex(".*Walk from (..) to (..).*")
 val regex2 = Regex(".*(Return to|Recurse into).* through (..).*")
 
 fun main() {
-    input.map{
+    input.map {
         val match1 = regex1.matchEntire(it)
         val match2 = regex2.matchEntire(it)
         match1?.destructured?.component2() ?: match2!!.destructured.component2()

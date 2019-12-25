@@ -1,26 +1,28 @@
 package advent2019.day23
 
 import advent2019.bi
+import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Timeout
 import kotlin.test.expect
+
+private val input = readAllLines("data/input-2019-23.txt").single()
 
 @ExperimentalCoroutinesApi
 @FlowPreview
 internal class Category6KtTest {
 
     @Test
-    @Timeout(1)
-    internal fun puzzlePart1() {
-        expect(27061.bi) { Category6(readAllLines("data/input-2019-23.txt").single()).puzzlePart1() }
+    fun puzzlePart1() {
+        expect(27061.bi) { Category6(input).puzzlePart1() }
     }
 
     @Test
-    @Timeout(1)
-    internal fun puzzlePart2() {
-        expect(19406.bi) { Category6(readAllLines("data/input-2019-23.txt").single()).puzzlePart2() }
+    fun puzzlePart2() {
+        expect(19406.bi) { Category6(input).puzzlePart2() }
     }
 }

@@ -69,7 +69,7 @@ fun calculate(
     }
 
     return rawQuantity
-        .also { logWithTime("$outputChem require ${rawQuantity to rawMaterial}")}
+        .also { logWithTime("$outputChem require ${rawQuantity to rawMaterial}") }
 }
 
 fun calculateMax(output: Compound, maxStorage: Material, reactions: Reactions): Quantity =

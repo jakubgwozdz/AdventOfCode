@@ -19,9 +19,9 @@ fun main() {
 
     val input = readAllLines("data/input-2019-23.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
-    Category6(input).puzzlePart1()
+    Category6(input, logging = true).puzzlePart1()
         .also { logWithTime("part 1: $it") }
-    Category6(input).puzzlePart2()
+    Category6(input, logging = true).puzzlePart2()
         .also { logWithTime("part 2: $it") }
 
 }
@@ -135,10 +135,10 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
                     delay(300)
                     if (nics.values.all { it.isIdle }) {
                         val lastNatPacketReceived = lastNatPacketChannel.receive()
-                        logWithTime("NAT sends $lastNatPacketReceived...")
+                        if (logging) logWithTime("NAT sends $lastNatPacketReceived...")
                         nics[0.bi]!!.inChannel.send(lastNatPacketReceived)
                         if (lastNatPacketReceived == lastNatPacketSent) {
-                            logWithTime("...it's same as previously")
+                            if (logging) logWithTime("...it's same as previously")
                             resultChannel.send(lastNatPacketSent!!)
                         }
                         lastNatPacketSent = lastNatPacketReceived
@@ -149,6 +149,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
             val result = resultChannel.receive()
             this.coroutineContext.cancelChildren()
             if (logging) logWithTime("All jobs cancelled, hopefully")
+            joinAll()
 
             result
         }

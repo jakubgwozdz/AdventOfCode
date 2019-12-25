@@ -1,15 +1,10 @@
 package advent2019.intcode
 
-//import advent2019.Queue
 import advent2019.logWithTime
-import advent2019.nodelay
 import advent2019.remove
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.math.BigInteger
 import java.math.BigInteger.ZERO
 import java.util.*
@@ -60,7 +55,7 @@ class ChannelInBuffer<T>(val id: Any, val channel: ReceiveChannel<T>, val logIO:
 }
 
 @ExperimentalCoroutinesApi
-class TranslatingNonblockingInBuffer<T : Any, P:Any, I:Any>(
+class TranslatingNonblockingInBuffer<T : Any, P : Any, I : Any>(
     val id: I,
     val channel: ReceiveChannel<P>,
     val logIO: Boolean = false,
@@ -120,8 +115,11 @@ class Computer(
             delay(1000)
             logWithTime("Computer $id waits for input> ")
         }
-        return inBuffer.receive()
-            .also { job.cancel() }
+        return try {
+            inBuffer.receive()
+        } finally {
+            job.cancel()
+        }
     }
 
     suspend fun write(v: BigInteger) {
@@ -129,8 +127,11 @@ class Computer(
             delay(1000)
             logWithTime("Computer $id wants to write> ")
         }
-        outBuffer.send(v)
-        job.cancel()
+        try {
+            outBuffer.send(v)
+        } finally {
+            job.cancel()
+        }
     }
 
     val operation: BigInteger get() = memory[ip]
@@ -167,6 +168,7 @@ class Computer(
                 }
                 else -> error("unknown opcode $operation at addr $ip")
             }
+            yield()
         }
     }
 

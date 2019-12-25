@@ -1,7 +1,8 @@
 package advent2019.day18
 
-import advent2019.*
+import advent2019.logWithTime
 import advent2019.maze.*
+import advent2019.readAllLines
 
 
 fun Maze.canGoThrough(where: Location, keys: Set<Char> = emptySet()) =

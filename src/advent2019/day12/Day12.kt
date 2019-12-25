@@ -1,6 +1,5 @@
 package advent2019.day12
 
-import advent2019.gcd
 import advent2019.lcm
 import advent2019.logWithTime
 import advent2019.readAllLines

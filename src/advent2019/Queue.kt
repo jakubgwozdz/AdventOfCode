@@ -1,7 +1,6 @@
 package advent2019
 
 
-
 //interface Queue<T> {
 //    fun add()
 //}

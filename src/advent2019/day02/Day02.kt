@@ -28,7 +28,7 @@ fun part2(input: String): Int = (0..99)
         }
     }
     .single { (input, output) -> output[0] == 19690720 }
-    .let { (input, output) -> input}
+    .let { (input, output) -> input }
     .let { (noun, verb) -> 100 * noun + verb }
 
 

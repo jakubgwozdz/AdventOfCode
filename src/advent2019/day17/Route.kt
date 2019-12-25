@@ -176,4 +176,4 @@ fun <T> List<T>.endsWith(o: List<T>, ending: Int = size): Boolean =
     size >= ending && ending >= o.size && subList(ending - o.size, ending) == o
 
 fun <T> List<T>.startsWith(o: List<T>, starting: Int = 0): Boolean =
-    size >= starting+o.size && subList(starting, starting + o.size) == o
+    size >= starting + o.size && subList(starting, starting + o.size) == o

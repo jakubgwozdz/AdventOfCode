@@ -94,7 +94,7 @@ open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
     }
 
     private var currentBest: Pair<R, I>? = null
-    private val toVisit: MutableCollection<Triple<T, R, I>> = sortedSetOf( compareBy({it.third},{it.first}))
+    private val toVisit: MutableCollection<Triple<T, R, I>> = sortedSetOf(compareBy({ it.third }, { it.first }))
 
 }
 
@@ -143,5 +143,5 @@ class PathCache<T : Comparable<T>, D>(logging: Boolean, private val reverseOp: (
 }
 
 class NoCache<T, D> : Cache<T, List<D>> {
-    override fun computeIfAbsent(start: T, end: T, op: (T, T) -> List<D>?): List<D>? =  op(start, end)
+    override fun computeIfAbsent(start: T, end: T, op: (T, T) -> List<D>?): List<D>? = op(start, end)
 }
