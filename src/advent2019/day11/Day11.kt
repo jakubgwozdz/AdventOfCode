@@ -57,7 +57,7 @@ private fun paint(program: String, robotInitOp: PaintRobot.() -> Unit = {}): Mut
         robotToComp.close()
     }
 
-    return robot.hull;
+    return robot.hull
 }
 
 class PaintRobot(

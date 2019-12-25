@@ -185,8 +185,8 @@ RE....#.#                           #......RF
         val input = readAllLines("data/input-2019-20.txt")
         val donut = Donut(input)
 
-        expect (696) {
-            donut.shortest().sumBy (Connection::distance)
+        expect(696) {
+            donut.shortest().sumBy(Connection::distance)
         }
 
     }
@@ -196,8 +196,8 @@ RE....#.#                           #......RF
         val input = readAllLines("data/input-2019-20.txt")
         val donut = Donut(input)
 
-        expect (7538) {
-            donut.shortestRecursive().sumBy (ConnectionOnLevel::distance)
+        expect(7538) {
+            donut.shortestRecursive().sumBy(ConnectionOnLevel::distance)
         }
 
     }

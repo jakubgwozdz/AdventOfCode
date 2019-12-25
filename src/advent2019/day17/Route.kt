@@ -99,7 +99,7 @@ private fun possibleA(path: Movements): Sequence<Movements> {
     return (1..5) // functionA is from beginning, at least 1 item long
         .reversed()
         .asSequence()
-        .map { path.take(it) as Movements }
+        .map { path.take(it) }
         .filter { it.asInput().length <= 20 }
 }
 
