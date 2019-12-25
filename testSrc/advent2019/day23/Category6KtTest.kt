@@ -21,6 +21,6 @@ internal class Category6KtTest {
     @Test
     @Timeout(1)
     internal fun puzzlePart2() {
-        expect(270612.bi) { Category6(readAllLines("data/input-2019-23.txt").single()).puzzlePart2() }
+        expect(19406.bi) { Category6(readAllLines("data/input-2019-23.txt").single()).puzzlePart2() }
     }
 }

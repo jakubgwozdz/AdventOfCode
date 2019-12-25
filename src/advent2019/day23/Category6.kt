@@ -85,8 +85,6 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
         val nat = Channel<Packet>()
         val resultChannel = Channel<Packet>()
 
-        val stateChangedChannel = Channel<Pair<BigInteger, Boolean>>()
-
         val nics = (0 until 50)
             .map { id ->
                 NIC(id.toBigInteger(), program.copy())
@@ -123,7 +121,6 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
             if (logging) logWithTime("NICs started")
 
             val lastNatPacketChannel = Channel<Packet>(Channel.CONFLATED)
-            var lastNatPacketSent: Packet? = null
 
             val natChannel = launch() {
                 nat.consumeEach { packet ->
@@ -133,6 +130,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
             }
 
             val natJob = launch() {
+                var lastNatPacketSent: Packet? = null
                 while (true) {
                     delay(300)
                     if (nics.values.all { it.isIdle }) {
@@ -145,25 +143,6 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
                         }
                         lastNatPacketSent = lastNatPacketReceived
                     }
-                }
-            }
-
-            val idles = nics.mapValues { false }.toMutableMap()
-            val stateChangedJob = launch() {
-                stateChangedChannel.consumeEach { (id, idle) ->
-                    idles[id] = idle
-//                    if (idle) {
-//                        if (idles.all { it.value }) {
-//                            val lastNatPacketReceived = lastNatPacketChannel.receive()
-//                            logWithTime("NAT sends $lastNatPacketReceived...")
-//                            nics[0.bi]!!.inChannel.send(lastNatPacketReceived)
-//                            if (lastNatPacketReceived == lastNatPacketSent) {
-//                                logWithTime("...it's same as previously")
-//                                resultChannel.send(lastNatPacketSent!!)
-//                            }
-//                            lastNatPacketSent = lastNatPacketReceived
-//                        }
-//                    }
                 }
             }
 
@@ -203,18 +182,12 @@ class NIC(
 
     private val idleAnswerOp: suspend () -> List<BigInteger> = {
         idleValue
-            .also {
-                isIdle = true
-                stateChangedChannel.send(id to isIdle)
-            }
+            .also { isIdle = true }
     }
 
     private val translateOp: suspend (Packet) -> List<BigInteger> = {
         listOf(it.first, it.second)
-            .also {
-                isIdle = false
-                stateChangedChannel.send(id to isIdle)
-            }
+            .also { isIdle = false }
     }
 
     val inChannel = Channel<Packet>(Channel.UNLIMITED)
