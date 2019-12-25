@@ -1,7 +1,7 @@
 package advent2019.day07
 
-import advent2019.intcode.Computer
-import advent2019.intcode.parse
+import advent2019.intcode.Intcode
+import advent2019.intcode.parseIntcode
 import advent2019.logWithTime
 import advent2019.permutations
 import advent2019.readAllLines
@@ -31,10 +31,10 @@ fun main() {
 fun run(programStr: String, input: List<BigInteger>): BigInteger {
     var output = BigInteger.ZERO
     input.forEachIndexed { index, ampl ->
-        val program = parse(programStr)
+        val program = parseIntcode(programStr)
         val inputBuffer = Channel<BigInteger>()
         val outputBuffer = Channel<BigInteger>()
-        val computer = Computer('A' + index, program, inputBuffer, outputBuffer)
+        val computer = Intcode(program, inputBuffer, outputBuffer, 'A' + index)
         output = runBlocking {
             launch { computer.run() }
             inputBuffer.apply {
@@ -55,11 +55,11 @@ fun run2(programStr: String, input: List<BigInteger>): BigInteger {
     val computers = input.indices
         .map { 'A' + it }
         .mapIndexed { index, id ->
-            Computer(
-                id,
-                parse(programStr),
+            Intcode(
+                parseIntcode(programStr),
                 buffers[index],
-                buffers[(index + 1) % buffers.size]
+                buffers[(index + 1) % buffers.size],
+                id
             )
         }
 

@@ -1,7 +1,7 @@
 package advent2019.day19
 
-import advent2019.intcode.Computer
-import advent2019.intcode.parse
+import advent2019.intcode.Intcode
+import advent2019.intcode.parseIntcode
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.channels.Channel
@@ -79,7 +79,7 @@ fun findFor(y: Int, pivot: Pair<Int, IntRange>, scanner: Scanner): IntRange {
 
 class Scanner(program: String) {
 
-    val rom = parse(program)
+    val rom = parseIntcode(program)
 
     operator fun get(p: Pair<Int, Int>) = (call(p.first, p.second) == BigInteger.ONE)
         .also { print(if (it) "#" else ".") }
@@ -89,7 +89,7 @@ class Scanner(program: String) {
 
             val inChannel = Channel<BigInteger>()
             val outChannel = Channel<BigInteger>()
-            val computer = Computer("BEAM", rom.copy(), inChannel, outChannel)
+            val computer = Intcode(rom.copy(), inChannel, outChannel, "BEAM")
             launch {
                 computer.run()
                 inChannel.close()

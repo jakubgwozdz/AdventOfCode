@@ -86,7 +86,7 @@ fun dissassembly(memory: Memory, addr: BigInteger): Disassembly {
 }
 
 fun disassemblyProgram(program: String): Sequence<String> {
-    val memory = parse(program)
+    val memory = parseIntcode(program)
     var addr = ZERO
 
     return object : Iterator<String> {

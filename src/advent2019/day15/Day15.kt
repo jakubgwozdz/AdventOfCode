@@ -1,9 +1,9 @@
 package advent2019.day15
 
 import advent2019.day15.MapContent.values
-import advent2019.intcode.Computer
+import advent2019.intcode.Intcode
 import advent2019.intcode.Memory
-import advent2019.intcode.parse
+import advent2019.intcode.parseIntcode
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.cancelChildren
@@ -18,7 +18,7 @@ fun main() {
     val program = readAllLines("data/input-2019-15.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
-    val memory = parse(program)
+    val memory = parseIntcode(program)
     val map = mapShip(memory)
     val start: Location = 0 to 0
     val end = map.filterValues { it == MapContent.Target }.keys.single()
@@ -87,7 +87,7 @@ fun mapShip(memory: Memory): Map<Location, MapContent> = runBlocking {
     val cameFrom = mutableMapOf<Location, Location>()
     val inBuffer = Channel<BigInteger>()
     val outBuffer = Channel<BigInteger>()
-    val job = launch { Computer("ROBOT", memory, inBuffer, outBuffer).run() }
+    val job = launch { Intcode(memory, inBuffer, outBuffer, "ROBOT").run() }
     while (job.isActive) {
         var direction = nextUnknown(location, map)
 

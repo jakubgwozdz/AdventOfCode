@@ -1,7 +1,7 @@
 package advent2019.day09
 
-import advent2019.intcode.Computer
-import advent2019.intcode.parse
+import advent2019.intcode.Intcode
+import advent2019.intcode.parseIntcode
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.channels.Channel
@@ -27,7 +27,7 @@ fun run1(programStr: String, input: List<BigInteger>): List<BigInteger> {
 
     val inBuffer = Channel<BigInteger>()
     val outBuffer = Channel<BigInteger>(Channel.UNLIMITED)
-    val computer = Computer("BOOST", parse(programStr), inBuffer, outBuffer)
+    val computer = Intcode(parseIntcode(programStr), inBuffer, outBuffer, "BOOST")
 
     return runBlocking {
         val job = launch {

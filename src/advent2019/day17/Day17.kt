@@ -21,7 +21,7 @@ fun main() {
         val input = readAllLines("data/input-2019-17.txt").single()
             .also { logWithTime("Program length (chars): ${it.length}") }
 
-        val program1 = parse(input)
+        val program1 = parseIntcode(input)
         val scaffolding = Scaffolding(drawMap(program1).also { l -> l.forEach { logWithTime(it) } })
 
         alignment(scaffolding)
@@ -34,7 +34,7 @@ fun main() {
         logWithTime("functionB: $functionB")
         logWithTime("functionC: $functionC")
 
-        val program2 = parse(input).also { it[0.toBigInteger()] = 2.toBigInteger() }
+        val program2 = parseIntcode(input).also { it[0.toBigInteger()] = 2.toBigInteger() }
 
         moveRobot(program2, mainRoutine, functionA, functionB, functionC)
             .also { logWithTime("part 2: $it") }
@@ -53,7 +53,7 @@ private fun alignment(scaffolding: Scaffolding): Int =
 private fun drawMap(program: Memory): List<String> = runBlocking {
     val inChannel = Channel<BigInteger>()
     val outChannel = Channel<BigInteger>()
-    val computer = Computer("ASCII", program, inChannel, outChannel)
+    val computer = Intcode(program, inChannel, outChannel, "ASCII")
     launch {
         computer.run()
         inChannel.close()
@@ -77,7 +77,7 @@ private fun moveRobot(
     return runBlocking {
         val inChannel = Channel<BigInteger>()
         val outChannel = Channel<BigInteger>()
-        val computer = Computer("ASCII", program, inChannel, outChannel)
+        val computer = Intcode(program, inChannel, outChannel, "ASCII")
         var lastData = ZERO!!
         launch {
             computer.run()

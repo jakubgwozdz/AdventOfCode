@@ -1,7 +1,7 @@
 package advent2019.day11
 
-import advent2019.intcode.Computer
-import advent2019.intcode.parse
+import advent2019.intcode.Intcode
+import advent2019.intcode.parseIntcode
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.cancelChildren
@@ -37,14 +37,14 @@ fun main() {
 }
 
 private fun paint(program: String, robotInitOp: PaintRobot.() -> Unit = {}): MutableMap<Pair<Int, Int>, BigInteger> {
-    val memory = parse(program)
+    val memory = parseIntcode(program)
     val robotToComp = Channel<BigInteger>(Channel.CONFLATED)
     val compToRobot = Channel<BigInteger>()
     val robot = PaintRobot(compToRobot, robotToComp).apply(robotInitOp)
 
     runBlocking {
         val compJob = launch {
-            Computer("PAINT", memory, robotToComp, compToRobot).run()
+            Intcode(memory, robotToComp, compToRobot, "PAINT").run()
         }
         val robotJob = launch {
             robot.run()

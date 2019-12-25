@@ -1,9 +1,9 @@
 package advent2019.day13
 
 import advent2019.intcode.ChannelOutBuffer
-import advent2019.intcode.Computer
+import advent2019.intcode.Intcode
 import advent2019.intcode.InBuffer
-import advent2019.intcode.parse
+import advent2019.intcode.parseIntcode
 import advent2019.logWithTime
 import advent2019.readAllLines
 import kotlinx.coroutines.cancelChildren
@@ -26,12 +26,12 @@ fun main() {
 }
 
 fun part1(program: String): Int {
-    val memory = parse(program)
+    val memory = parseIntcode(program)
 
     return runBlocking {
         val outBuffer = Channel<BigInteger>(Channel.UNLIMITED)
         val comp = launch {
-            Computer("ARCADE", memory, Channel(), outBuffer, false).run()
+            Intcode(memory, Channel(), outBuffer, "ARCADE", false).run()
         }
         comp.join()
         outBuffer.close()
@@ -45,7 +45,7 @@ fun part1(program: String): Int {
 }
 
 fun part2(program: String): Int {
-    val memory = parse(program)
+    val memory = parseIntcode(program)
     memory[BigInteger.ZERO] = 2.toBigInteger()
 
     return runBlocking {
@@ -57,7 +57,7 @@ fun part2(program: String): Int {
             }
         }
         val comp = launch {
-            Computer("ARCADE", memory, input, ChannelOutBuffer("ARCADE", output)).run()
+            Intcode(memory, input, ChannelOutBuffer("ARCADE", output), "ARCADE").run()
         }
 
         comp.join()

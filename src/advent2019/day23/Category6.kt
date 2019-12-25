@@ -30,7 +30,7 @@ fun main() {
 @ExperimentalCoroutinesApi
 class Category6(val input: String, val size: Int = 50, val logging: Boolean = false) {
 
-    val program = parse(input)
+    val program = parseIntcode(input)
 
     fun puzzlePart1(): BigInteger {
 
@@ -201,6 +201,6 @@ class NIC(
         .apply { buffer.add(this@NIC.id) }
 
     val outChannel = Channel<BigInteger>()
-    val comp = Computer(id, program, inBuffer, ChannelOutBuffer(id, outChannel))
+    val comp = Intcode(program, inBuffer, ChannelOutBuffer(id, outChannel), id)
 
 }

@@ -1,5 +1,6 @@
 package advent2019.intcode
 
+import advent2019.bi
 import advent2019.logWithTime
 import advent2019.remove
 import kotlinx.coroutines.*
@@ -91,21 +92,22 @@ class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val lo
 
 }
 
+var compId = 0.bi
 
-class Computer(
-    val id: Any,
+class Intcode(
     val memory: Memory,
     val inBuffer: InBuffer<BigInteger>,
     val outBuffer: OutBuffer,
+    val id: Any = compId++,
     val debug: Boolean = false
 ) {
     constructor(
-        id: Any,
         memory: Memory,
         receiveChannel: ReceiveChannel<BigInteger>,
         sendChannel: SendChannel<BigInteger>,
+        id: Any = compId++,
         debug: Boolean = false
-    ) : this(id, memory, ChannelInBuffer(id, receiveChannel), ChannelOutBuffer(id, sendChannel), debug)
+    ) : this(memory, ChannelInBuffer(id, receiveChannel), ChannelOutBuffer(id, sendChannel), id, debug)
 
     var ip: BigInteger = ZERO // instruction pointer
     var rb: BigInteger = ZERO // relative base
@@ -225,7 +227,7 @@ class Computer(
 
 }
 
-fun parse(input: String): Memory {
+fun parseIntcode(input: String): Memory {
     return input
         .split(",")
         .mapIndexed { index: Int, s: String -> index.toBigInteger() to s.trim().toBigInteger() }

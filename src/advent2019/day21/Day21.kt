@@ -1,8 +1,8 @@
 package advent2019.day21
 
-import advent2019.intcode.Computer
+import advent2019.intcode.Intcode
 import advent2019.intcode.fullLines
-import advent2019.intcode.parse
+import advent2019.intcode.parseIntcode
 import advent2019.intcode.writeln
 import advent2019.logWithTime
 import advent2019.readAllLines
@@ -32,10 +32,10 @@ fun main() {
 @FlowPreview
 private fun goSpring(input: String, springPrg: List<String>): BigInteger {
     return runBlocking {
-        val program = parse(input)
+        val program = parseIntcode(input)
         val inChannel = Channel<BigInteger>()
         val outChannel = Channel<BigInteger>()
-        val computer = Computer("ASCII", program, inChannel, outChannel)
+        val computer = Intcode(program, inChannel, outChannel, "ASCII")
         var lastData = BigInteger.ZERO!!
 
         launch {
