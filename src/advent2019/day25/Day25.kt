@@ -40,9 +40,9 @@ class Cryostasis(val program: Memory) {
     val knownExits: MutableMap<String, MutableMap<Direction, String>> = mutableMapOf()
     val movements: LinkedList<Pair<String, Direction>> = LinkedList()
     var currentRoom: Room? = null
+    var lastMovement: Direction? = null
 
     fun update(output: Output): String {
-
 
         return when (output) {
             is RoomDescription -> {
@@ -50,32 +50,30 @@ class Cryostasis(val program: Memory) {
                 logWithTime("Previous room: ${prevRoom?.name}, movements so far: $movements")
                 val room = output.room
 
-                val knownExitsFromRoom = room.doors.map { it to knownExits[room.name]?.get(it)}
+                val knownExitsFromRoom = room.doors.map { it to knownExits[room.name]?.get(it) }
                 logWithTime("Current room: ${room.name}, exits: $knownExitsFromRoom")
 
                 val visitedAlready =
                     knownRooms[room.name]?.also { if (it != room) error("this room was $it, now it's $room") }
-                if (prevRoom == null) {
-                    currentRoom = room.also { knownRooms[room.name] = it }
-                } else {
-                    currentRoom = room.also { knownRooms[room.name] = it }
-                        .also {
-                            knownExits.computeIfAbsent(prevRoom.name) { mutableMapOf() }[movements.last().second] =
-                                it.name
-                        }
+                knownRooms[room.name] = room
+                currentRoom = room
 
+                if (prevRoom != null && lastMovement != null) {
+                    knownExits.computeIfAbsent(prevRoom.name) { mutableMapOf() }[lastMovement!!] = room.name
                 }
-                val movement = room.doors.firstOrNull { it !in knownExits[room.name]?.keys?: emptyList<Direction>() }
+
+                val movement = room.doors.firstOrNull { it !in knownExits[room.name]?.keys ?: emptyList<Direction>() }
                     ?.also { movements += room.name to it }
                     ?: movements.removeLast()
-                        .also { logWithTime("No unknown exit, TURNING AROUND")}
+                        .also { logWithTime("No unknown exit, TURNING AROUND") }
 //                        .also { if (it.first != prevRoom!!.name) error("last movement $it should be from ${prevRoom.name}") }
                         .second
                         .back
+                lastMovement = movement
 
                 movement.text
             }
-            is RoomWithTeleportDescription -> TODO("RoomWithTeleportDescription")
+            is RoomWithTeleportDescription -> TODO("RoomWithTeleportDescription, $knownExits")
         }
 
     }
