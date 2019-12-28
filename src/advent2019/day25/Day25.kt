@@ -11,8 +11,19 @@ import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
 import java.util.*
 
+data class SearchState(
+    val knownRooms: MutableMap<String, Room> = mutableMapOf(),
+    val knownExits: MutableMap<String, MutableMap<Direction, String>> = mutableMapOf(),
+    val movements: LinkedList<Pair<String, Direction>> = LinkedList(), var currentRoom: Room? = null,
+    var lastMovement: Direction? = null,
+    val knownDirectionsToPlaces: MutableMap<String, List<Pair<String, Direction>>> = mutableMapOf()
+) {
+}
+
 @FlowPreview
 class Cryostasis(val program: Memory) {
+
+    val state = SearchState()
 
     fun start() = runBlocking {
         val inChannel = Channel<BigInteger>()
@@ -32,57 +43,66 @@ class Cryostasis(val program: Memory) {
             .infos()
             .collect {
                 val command = update(it)
-                inChannel.writeln(command)
+                if (command.isNotBlank())
+                   inChannel.writeln(command)
             }
     }
 
-    val knownRooms: MutableMap<String, Room> = mutableMapOf()
-    val knownExits: MutableMap<String, MutableMap<Direction, String>> = mutableMapOf()
-    val movements: LinkedList<Pair<String, Direction>> = LinkedList()
-    var currentRoom: Room? = null
-    var lastMovement: Direction? = null
+    fun update(output: Output): String = when (output) {
+        is RoomDescription -> room(output)
+        is RoomWithTeleportDescription -> teleport(output)
+    }
 
-    fun update(output: Output): String {
+    private fun teleport(description: RoomWithTeleportDescription): String {
+        val room = description.room
+        updateMap(room)
+        state.lastMovement = null
+        state.movements.removeLast()
+        return ""
+    }
 
-        return when (output) {
-            is RoomDescription -> {
-                val prevRoom = currentRoom
-                logWithTime("Previous room: ${prevRoom?.name}, movements so far: $movements")
-                val room = output.room
+    private fun room(description: RoomDescription): String {
+        val room = description.room
+        updateMap(room)
+        return makeMove(room)
+    }
 
-                val knownExitsFromRoom = room.doors.map { it to knownExits[room.name]?.get(it) }
-                logWithTime("Current room: ${room.name}, exits: $knownExitsFromRoom")
+    private fun makeMove(room: Room): String {
+        val movement = nextDirectionToCheck(room)
+            ?.also { state.movements += room.name to it }
+            ?: state.movements.removeLast()
+                .also { logWithTime("No unknown exit, TURNING AROUND") }
+                //                        .also { if (it.first != prevRoom!!.name) error("last movement $it should be from ${prevRoom.name}") }
+                .second
+                .back
+        state.lastMovement = movement
 
-                val visitedAlready =
-                    knownRooms[room.name]?.also { if (it != room) error("this room was $it, now it's $room") }
-                knownRooms[room.name] = room
-                currentRoom = room
+        return movement.text
+    }
 
-                if (prevRoom != null && lastMovement != null) {
-                    knownExits.computeIfAbsent(prevRoom.name) { mutableMapOf() }[lastMovement!!] = room.name
-                }
+    private fun updateMap(room: Room) {
+        val prevRoom = state.currentRoom
+        logWithTime("Previous room: ${prevRoom?.name}, movements so far: ${state.movements}")
 
-                val movement = nextDirectionToCheck(room)
-                    ?.also { movements += room.name to it }
-                    ?: movements.removeLast()
-                        .also { logWithTime("No unknown exit, TURNING AROUND") }
-//                        .also { if (it.first != prevRoom!!.name) error("last movement $it should be from ${prevRoom.name}") }
-                        .second
-                        .back
-                lastMovement = movement
+        val knownExitsFromRoom = room.doors.map { it to state.knownExits[room.name]?.get(it) }
+        logWithTime("Current room: ${room.name}, exits: $knownExitsFromRoom")
 
-                movement.text
-            }
-            is RoomWithTeleportDescription -> TODO("RoomWithTeleportDescription")
+        val visitedAlready =
+            state.knownRooms[room.name]?.also { if (it != room) error("this room was $it, now it's $room") }
+        state.knownRooms[room.name] = room
+        state.currentRoom = room
+
+        if (prevRoom != null && state.lastMovement != null) {
+            state.knownExits.computeIfAbsent(prevRoom.name) { mutableMapOf() }[state.lastMovement!!] = room.name
         }
-
+        state.knownDirectionsToPlaces.computeIfAbsent(room.name) { state.movements }
     }
 
-    fun nextDirectionToCheck(room: Room): Direction? = (lastMovement ?: Direction.N)
+    fun nextDirectionToCheck(room: Room): Direction? = (state.lastMovement ?: Direction.N)
         .let { listOf(it.left, it, it.right, it.back) }
         .filter { it in room.doors }
-        .filter { it != Direction.W || room.name != "Security Checkpoint" }
-        .firstOrNull { it !in knownExits[room.name]?.keys ?: emptyList<Direction>() }
+//        .filter { it != Direction.W || room.name != "Security Checkpoint" }
+        .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
 }
 
 enum class Direction(val text: String) {
@@ -223,8 +243,11 @@ fun main() {
     val cryostasis = Cryostasis(parseIntcode(input))
     try {
         cryostasis.start()
-    } catch (e: Exception) {
-        println(cryostasis.knownExits)
+    } catch (e: Throwable) {
+        logWithTime(cryostasis.state.movements)
+        logWithTime(cryostasis.state.lastMovement)
+        logWithTime(cryostasis.state.currentRoom)
+        logWithTime(cryostasis.state.knownExits)
         throw e
     }
 //    goSpring(input, spring1())
