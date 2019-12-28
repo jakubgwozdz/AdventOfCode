@@ -36,43 +36,46 @@ class Cryostasis(val program: Memory) {
             }
     }
 
-    val map = SearchTree<Direction, Room>()
-    val knownRooms = mutableMapOf<String, SearchTree<Direction, Room>>()
-    val movements = LinkedList<Pair<Direction, String>>()
-    var currentRoom: SearchTree<Direction, Room>? = null
-//    val roomEnters = mutableMapOf<String, Direction>()
+    val knownRooms: MutableMap<String, Room> = mutableMapOf()
+    val knownExits: MutableMap<String, MutableMap<Direction, String>> = mutableMapOf()
+    val movements: LinkedList<Pair<String, Direction>> = LinkedList()
+    var currentRoom: Room? = null
 
     fun update(output: Output): String {
 
-        val prevRoom = currentRoom
-        logWithTime("Previous room: ${prevRoom?.root?.name}, movements so far: $movements")
 
         return when (output) {
             is RoomDescription -> {
+                val prevRoom = currentRoom
+                logWithTime("Previous room: ${prevRoom?.name}, movements so far: $movements")
                 val room = output.room
-                val visitedAlready = knownRooms[room.name]
+
+                val knownExitsFromRoom = room.doors.map { it to knownExits[room.name]?.get(it)}
+                logWithTime("Current room: ${room.name}, exits: $knownExitsFromRoom")
+
+                val visitedAlready =
+                    knownRooms[room.name]?.also { if (it != room) error("this room was $it, now it's $room") }
                 if (prevRoom == null) {
-                    currentRoom = map.start(room).also { knownRooms[room.name] = it }
+                    currentRoom = room.also { knownRooms[room.name] = it }
                 } else {
-                    currentRoom = if (visitedAlready == null) {
-                        val newRoom = prevRoom.add(movements.last().first, room)
-                        knownRooms[room.name] = newRoom
-                        newRoom
-                    } else {
-                        // we were here
-                        prevRoom.update(movements.last.first, visitedAlready)
-                    }
+                    currentRoom = room.also { knownRooms[room.name] = it }
+                        .also {
+                            knownExits.computeIfAbsent(prevRoom.name) { mutableMapOf() }[movements.last().second] =
+                                it.name
+                        }
+
                 }
-                val movement = room.doors.firstOrNull { it !in currentRoom!!.visitedExits.keys }
-                    ?.also { movements += it to room.name }
+                val movement = room.doors.firstOrNull { it !in knownExits[room.name]?.keys?: emptyList<Direction>() }
+                    ?.also { movements += room.name to it }
                     ?: movements.removeLast()
-                        .also { if (it.second != prevRoom!!.root!!.name) error("last movement $it should be from ${prevRoom.root!!.name}") }
-                        .first
+                        .also { logWithTime("No unknown exit, TURNING AROUND")}
+//                        .also { if (it.first != prevRoom!!.name) error("last movement $it should be from ${prevRoom.name}") }
+                        .second
                         .back
 
                 movement.text
             }
-            is RoomWithTeleportDescription -> TODO()
+            is RoomWithTeleportDescription -> TODO("RoomWithTeleportDescription")
         }
 
     }
@@ -145,7 +148,7 @@ data class RoomWithTeleportDescription(val room: Room) : Output()
 
 class OutputParser() {
 
-    enum class State { START, BUILDING_ROOM }
+    enum class State { START, BUILDING_ROOM, AFTER_TELEPORT }
 
     var state = State.START
     val roomBuilder = RoomBuilder()
@@ -162,7 +165,7 @@ class OutputParser() {
 
     fun accept(line: String) {
         state = when (state) {
-            State.START -> when {
+            State.START, State.AFTER_TELEPORT -> when {
                 line.isBlank() -> state
                 roomNameRegex.matches(line) -> {
                     roomBuilder.accept(line)
@@ -173,8 +176,8 @@ class OutputParser() {
             State.BUILDING_ROOM -> {
                 if (alertRegex.matches(line)) {
                     builtOutputs.add(RoomWithTeleportDescription(roomBuilder.build()))
-                    clear()
-                    state
+                    roomBuilder.clear()
+                    State.AFTER_TELEPORT
                 } else {
                     roomBuilder.accept(line)
                     state
