@@ -23,38 +23,11 @@ data class SearchState(
     val knownDirectionsToPlaces: MutableMap<String, List<Pair<String, Direction>>> = mutableMapOf(),
     var weightState: WeightState = WeightState.UNKNOWN,
     val inventory: MutableList<String> = mutableListOf()
-) {
-}
+)
 
-@FlowPreview
-class Cryostasis(val program: Memory) {
+class SearchUpdater(val state: SearchState) {
 
-    val state = SearchState()
-
-    fun start() = runBlocking {
-        val inChannel = Channel<BigInteger>()
-        val outChannel = Channel<BigInteger>()
-        val computer = Intcode(program, inChannel, outChannel)
-
-        launch {
-            computer.run()
-            inChannel.close()
-            outChannel.close()
-        }
-
-        outChannel.consumeAsFlow()
-            .map { it.toInt().toChar() }
-            .fullLines()
-            .onEach { println(it) }
-            .infos()
-            .collect {
-                val command = update(it)
-                if (command.isNotBlank())
-                    inChannel.writeln(command)
-            }
-    }
-
-    fun update(output: Output): String = when (output) {
+    fun update(output: Output) = when (output) {
         is RoomDescription -> room(output)
         is RoomWithTeleportDescription -> teleport(output)
         is TakeActionDescription -> itemTaken(output)
@@ -68,7 +41,7 @@ class Cryostasis(val program: Memory) {
         state.knownRooms[room.name] = newRoom
         return itemToTake(newRoom)
             ?.let { takeItem(room, room.items.first()) }
-            ?: makeMove(room)
+            ?: makeMove(room, nextDirectionToCheck(room))
     }
 
     private fun teleport(description: RoomWithTeleportDescription): String {
@@ -91,7 +64,7 @@ class Cryostasis(val program: Memory) {
         updateMap(room)
         return itemToTake(room)
             ?.let { takeItem(room, room.items.first()) }
-            ?: makeMove(room)
+            ?: makeMove(room, nextDirectionToCheck(room))
     }
 
     private fun itemToTake(room: Room): String? =
@@ -103,8 +76,8 @@ class Cryostasis(val program: Memory) {
         return "take $item"
     }
 
-    private fun makeMove(room: Room): String {
-        val movement = nextDirectionToCheck(room)
+    private fun makeMove(room: Room, directionToCheck: Direction?): String {
+        val movement = directionToCheck
             ?.also { state.movements += room.name to it }
             ?: state.movements.removeLast()
 //                .also { logWithTime("No unknown exit, TURNING AROUND") }
@@ -139,6 +112,38 @@ class Cryostasis(val program: Memory) {
         .filter { it in room.doors }
 //        .filter { it != Direction.W || room.name != "Security Checkpoint" }
         .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
+
+}
+
+@FlowPreview
+class Cryostasis(val program: Memory) {
+
+    val state = SearchState()
+    val stateUpdater = SearchUpdater(state)
+
+    fun start() = runBlocking {
+        val inChannel = Channel<BigInteger>()
+        val outChannel = Channel<BigInteger>()
+        val computer = Intcode(program, inChannel, outChannel)
+
+        launch {
+            computer.run()
+            inChannel.close()
+            outChannel.close()
+        }
+
+        outChannel.consumeAsFlow()
+            .map { it.toInt().toChar() }
+            .fullLines()
+            .onEach { println(it) }
+            .infos()
+            .collect {
+                val command = stateUpdater.update(it)
+                if (command.isNotBlank())
+                    inChannel.writeln(command)
+            }
+    }
+
 }
 
 enum class Direction(val text: String) {

@@ -54,8 +54,6 @@ class RoomBuilder() {
         state = when (state) {
             State.START -> when {
                 line.isBlank() -> state
-//                Regex("You take .*\\.").matches(line) -> state
-//                line == "Command?" -> { clear() ; state }
                 else -> {
                     name += roomNameRegex.matchEntire(line)?.groupValues?.get(1)
                         ?: error("expected name, got '$line'")
