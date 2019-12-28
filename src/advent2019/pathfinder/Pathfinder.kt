@@ -2,18 +2,24 @@ package advent2019.pathfinder
 
 import advent2019.logWithTime
 
+/**
+ * T - location
+ * D - exits
+ * R - state
+ */
 interface Pathfinder<T : Any, R : Any> {
     fun findShortest(start: T, end: T): R?
 }
 
-open class DFSPathfinder<T : Any, R : Any>(
+open class DFSPathfinder<T : Any, D:Any, R : Any>(
     val logging: Boolean,
     val cache: Cache<T, R>,
     val initialStateOp: () -> R,
     val adderOp: (R, T) -> R,
     val distanceOp: ((R) -> Int)?,
     val comparator: Comparator<R> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
-    val waysOutOp: (R, T) -> Iterable<T>
+    val nextRoom: (R, D) -> T,
+    val waysOutOp: (R, T) -> Iterable<D>
 ) : Pathfinder<T, R> {
 
     override fun findShortest(start: T, end: T): R? {
@@ -26,6 +32,7 @@ open class DFSPathfinder<T : Any, R : Any>(
         return waysOutOp(newVisited, from)
             .also { if (logging) logWithTime("WaysOut for $from: $it") }
             .asSequence()
+            .map { nextRoom(newVisited, it) }
             .mapNotNull { next ->
                 cache.computeIfAbsent(next, end) { ns, ne -> findShortestProcess(ns, ne, newVisited) }
             }
