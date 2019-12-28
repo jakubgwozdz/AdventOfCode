@@ -62,7 +62,7 @@ class Cryostasis(val program: Memory) {
                     knownExits.computeIfAbsent(prevRoom.name) { mutableMapOf() }[lastMovement!!] = room.name
                 }
 
-                val movement = room.doors.firstOrNull { it !in knownExits[room.name]?.keys ?: emptyList<Direction>() }
+                val movement = nextDirectionToCheck(room)
                     ?.also { movements += room.name to it }
                     ?: movements.removeLast()
                         .also { logWithTime("No unknown exit, TURNING AROUND") }
@@ -73,10 +73,16 @@ class Cryostasis(val program: Memory) {
 
                 movement.text
             }
-            is RoomWithTeleportDescription -> TODO("RoomWithTeleportDescription, $knownExits")
+            is RoomWithTeleportDescription -> TODO("RoomWithTeleportDescription")
         }
 
     }
+
+    fun nextDirectionToCheck(room: Room): Direction? = (lastMovement ?: Direction.N)
+        .let { listOf(it.left, it, it.right, it.back) }
+        .filter { it in room.doors }
+        .filter { it != Direction.W || room.name != "Security Checkpoint" }
+        .firstOrNull { it !in knownExits[room.name]?.keys ?: emptyList<Direction>() }
 }
 
 enum class Direction(val text: String) {
@@ -214,7 +220,13 @@ fun main() {
     val input = readAllLines("data/input-2019-25.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
-    Cryostasis(parseIntcode(input)).start()
+    val cryostasis = Cryostasis(parseIntcode(input))
+    try {
+        cryostasis.start()
+    } catch (e: Exception) {
+        println(cryostasis.knownExits)
+        throw e
+    }
 //    goSpring(input, spring1())
 //        .also { logWithTime("part 1: $it") }
 
