@@ -28,6 +28,7 @@ data class Room(
 }
 
 val roomNameRegex = Regex("== (.+) ==")
+val takeRegex = Regex("You take the (.+)\\.")
 
 class RoomBuilder() {
 

@@ -11,12 +11,18 @@ import kotlinx.coroutines.runBlocking
 import java.math.BigInteger
 import java.util.*
 
+val forbiddenItems = listOf("escape pod", "giant electromagnet", "photons", "infinite loop", "molten lava")
+
+enum class WeightState { UNKNOWN, TOO_HEAVY, TOO_LIGHT, OK }
+
 data class SearchState(
     val knownRooms: MutableMap<String, Room> = mutableMapOf(),
     val knownExits: MutableMap<String, MutableMap<Direction, String>> = mutableMapOf(),
     val movements: LinkedList<Pair<String, Direction>> = LinkedList(), var currentRoom: Room? = null,
     var lastMovement: Direction? = null,
-    val knownDirectionsToPlaces: MutableMap<String, List<Pair<String, Direction>>> = mutableMapOf()
+    val knownDirectionsToPlaces: MutableMap<String, List<Pair<String, Direction>>> = mutableMapOf(),
+    var weightState: WeightState = WeightState.UNKNOWN,
+    val inventory: MutableList<String> = mutableListOf()
 ) {
 }
 
@@ -44,34 +50,64 @@ class Cryostasis(val program: Memory) {
             .collect {
                 val command = update(it)
                 if (command.isNotBlank())
-                   inChannel.writeln(command)
+                    inChannel.writeln(command)
             }
     }
 
     fun update(output: Output): String = when (output) {
         is RoomDescription -> room(output)
         is RoomWithTeleportDescription -> teleport(output)
+        is TakeActionDescription -> itemTaken(output)
+    }
+
+    private fun itemTaken(output: TakeActionDescription): String {
+        val item = takeRegex.matchEntire(output.line)!!.groupValues[1]
+        state.inventory += item
+        val room = state.currentRoom!!
+        val newRoom = room.copy(items = room.items - item)
+        state.knownRooms[room.name] = newRoom
+        return itemToTake(newRoom)
+            ?.let { takeItem(room, room.items.first()) }
+            ?: makeMove(room)
     }
 
     private fun teleport(description: RoomWithTeleportDescription): String {
         val room = description.room
         updateMap(room)
         state.lastMovement = null
+        state.movements.clear()
+        state.movements.addAll(state.knownDirectionsToPlaces[room.name]!!)
         state.movements.removeLast()
+        val cause = alertRegex.matchEntire(description.reason)!!.groupValues[1]
+        state.weightState = when (cause) {
+            "heavier" -> WeightState.TOO_LIGHT
+            else -> TODO(cause)
+        }
         return ""
     }
 
     private fun room(description: RoomDescription): String {
         val room = description.room
         updateMap(room)
-        return makeMove(room)
+        return itemToTake(room)
+            ?.let { takeItem(room, room.items.first()) }
+            ?: makeMove(room)
+    }
+
+    private fun itemToTake(room: Room): String? =
+        if (state.weightState == WeightState.TOO_HEAVY || state.weightState == WeightState.OK) null
+        else room.items
+            .firstOrNull { it !in forbiddenItems }
+
+    private fun takeItem(room: Room, item: String): String {
+        return "take $item"
     }
 
     private fun makeMove(room: Room): String {
         val movement = nextDirectionToCheck(room)
             ?.also { state.movements += room.name to it }
             ?: state.movements.removeLast()
-                .also { logWithTime("No unknown exit, TURNING AROUND") }
+//                .also { logWithTime("No unknown exit, TURNING AROUND") }
                 //                        .also { if (it.first != prevRoom!!.name) error("last movement $it should be from ${prevRoom.name}") }
                 .second
                 .back
@@ -82,10 +118,10 @@ class Cryostasis(val program: Memory) {
 
     private fun updateMap(room: Room) {
         val prevRoom = state.currentRoom
-        logWithTime("Previous room: ${prevRoom?.name}, movements so far: ${state.movements}")
+//        logWithTime("Previous room: ${prevRoom?.name}, movements so far: ${state.movements}")
 
         val knownExitsFromRoom = room.doors.map { it to state.knownExits[room.name]?.get(it) }
-        logWithTime("Current room: ${room.name}, exits: $knownExitsFromRoom")
+//        logWithTime("Current room: ${room.name}, exits: $knownExitsFromRoom")
 
         val visitedAlready =
             state.knownRooms[room.name]?.also { if (it != room) error("this room was $it, now it's $room") }
@@ -95,7 +131,7 @@ class Cryostasis(val program: Memory) {
         if (prevRoom != null && state.lastMovement != null) {
             state.knownExits.computeIfAbsent(prevRoom.name) { mutableMapOf() }[state.lastMovement!!] = room.name
         }
-        state.knownDirectionsToPlaces.computeIfAbsent(room.name) { state.movements }
+        state.knownDirectionsToPlaces.computeIfAbsent(room.name) { state.movements.toList() }
     }
 
     fun nextDirectionToCheck(room: Room): Direction? = (state.lastMovement ?: Direction.N)
@@ -168,11 +204,16 @@ class SearchTree<D : Any, T : Any>() {
 
 sealed class Output
 data class RoomDescription(val room: Room) : Output()
-data class RoomWithTeleportDescription(val room: Room) : Output()
+data class TakeActionDescription(val line: String) : Output()
+data class RoomWithTeleportDescription(val room: Room, val reason: String) : Output()
+
+val alertRegex =
+    Regex("A loud, robotic voice says \"Alert! Droids on this ship are (heavier) than the detected value!\" and you are ejected back to the checkpoint.")
+
 
 class OutputParser() {
 
-    enum class State { START, BUILDING_ROOM, AFTER_TELEPORT }
+    enum class State { START, BUILDING_ROOM, AFTER_TELEPORT, AFTER_TAKE }
 
     var state = State.START
     val roomBuilder = RoomBuilder()
@@ -184,22 +225,23 @@ class OutputParser() {
         state = State.START
     }
 
-    val alertRegex =
-        Regex("A loud, robotic voice says \"Alert! Droids on this ship are (heavier) than the detected value!\" and you are ejected back to the checkpoint.")
-
     fun accept(line: String) {
         state = when (state) {
-            State.START, State.AFTER_TELEPORT -> when {
+            State.START, State.AFTER_TELEPORT, State.AFTER_TAKE -> when {
                 line.isBlank() -> state
                 roomNameRegex.matches(line) -> {
                     roomBuilder.accept(line)
                     State.BUILDING_ROOM
                 }
-                else -> TODO()
+                takeRegex.matches(line) -> {
+                    builtOutputs.add(TakeActionDescription(line))
+                    State.AFTER_TAKE
+                }
+                else -> TODO("$state, $line")
             }
             State.BUILDING_ROOM -> {
                 if (alertRegex.matches(line)) {
-                    builtOutputs.add(RoomWithTeleportDescription(roomBuilder.build()))
+                    builtOutputs.add(RoomWithTeleportDescription(roomBuilder.build(), line))
                     roomBuilder.clear()
                     State.AFTER_TELEPORT
                 } else {
@@ -215,7 +257,10 @@ class OutputParser() {
             builtOutputs.add(RoomDescription(roomBuilder.build()))
             builtOutputs.toList().also { clear() }
         }
-        else -> error("Unexpected build() in state $state")
+        State.AFTER_TAKE -> {
+            builtOutputs.toList().also { clear() }
+        }
+        else -> error("Unexpected 'Command?' in state $state")
 
     }
 
@@ -244,11 +289,16 @@ fun main() {
     try {
         cryostasis.start()
     } catch (e: Throwable) {
-        logWithTime(cryostasis.state.movements)
-        logWithTime(cryostasis.state.lastMovement)
-        logWithTime(cryostasis.state.currentRoom)
-        logWithTime(cryostasis.state.knownExits)
-        throw e
+        System.err.println(e)
+        System.err.println("movements: " + cryostasis.state.movements)
+        System.err.println("lastMovement: " + cryostasis.state.lastMovement)
+        System.err.println("currentRoom: " + cryostasis.state.currentRoom)
+        System.err.println("knownRooms: " + cryostasis.state.knownRooms)
+        System.err.println("knownExits: " + cryostasis.state.knownExits)
+        e.stackTrace
+            .map { it.toString() }
+            .filter { it.startsWith("advent") }
+            .forEach { System.err.println("  at $it") }
     }
 //    goSpring(input, spring1())
 //        .also { logWithTime("part 1: $it") }
