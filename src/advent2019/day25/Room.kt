@@ -27,7 +27,7 @@ data class Room(
     }
 }
 
-class RoomBuilder() {
+class RoomBuilder {
 
     private enum class State {
         START, AFTER_NAME, AFTER_DESCRIPTION, AFTER_DOORS_HERE, AFTER_LAST_DOOR, AFTER_ITEMS_HERE, AFTER_LAST_ITEM
