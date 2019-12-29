@@ -46,6 +46,13 @@ class DecisionMaker(val state: SearchState) {
     // TODO - move $state modification somewhere else
     private fun makeMove(room: Room, directionToCheck: Direction?): String {
         val movement = directionToCheck
+            ?.also {
+                val shortcut = state.movements.toList().compact { it.first }
+                if (shortcut.size < state.movements.size) {
+                    state.movements.clear()
+                    state.movements.addAll(shortcut)
+                }
+            }
             ?.also { state.movements += room.name to it }
             ?: state.movements.removeLast()
                 .second
