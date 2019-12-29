@@ -1,5 +1,7 @@
 package advent2019.day09
 
+import advent2019.bi
+import advent2019.readAllLines
 import org.junit.jupiter.api.Test
 import java.math.BigInteger
 import kotlin.test.expect
@@ -24,6 +26,19 @@ internal class Day09KtTest {
         val programStr = "104,1125899906842624,99"
         expect(BigInteger("1125899906842624"), { run1(programStr, emptyList()).single() })
     }
+
+    @Test
+    fun puzzlePart1() {
+        val input = readAllLines("data/input-2019-09.txt").single()
+        expect(2351176124.bi) { part1(input) }
+    }
+
+    @Test
+    fun puzzlePart2() {
+        val input = readAllLines("data/input-2019-09.txt").single()
+        expect(73110.bi) { part2(input) }
+    }
+
 
 
 }

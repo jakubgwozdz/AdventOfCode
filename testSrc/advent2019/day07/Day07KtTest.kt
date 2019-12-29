@@ -1,5 +1,7 @@
 package advent2019.day07
 
+import advent2019.bi
+import advent2019.readAllLines
 import org.junit.jupiter.api.Test
 import kotlin.test.expect
 
@@ -16,5 +18,18 @@ internal class Day07KtTest {
             }
         )
     }
+
+    @Test
+    fun puzzlePart1() {
+        val input = readAllLines("data/input-2019-07.txt").single()
+        expect(262086.bi) { part1(input) }
+    }
+
+    @Test
+    fun puzzlePart2() {
+        val input = readAllLines("data/input-2019-07.txt").single()
+        expect(5371621.bi) { part2(input) }
+    }
+
 
 }

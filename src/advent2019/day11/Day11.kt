@@ -18,23 +18,25 @@ fun main() {
     val program = readAllLines("data/input-2019-11.txt").single()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
-    paint(program)
-        .also {
-            logWithTime("Part 1:")
-            output(it)
-            logWithTime("hull is ${it.size}")
-
-        }
+    part1(program)
 
     paint(program) { hull[0 to 0] = ONE }
         .also {
             logWithTime("Part 2:")
             output(it)
             logWithTime("hull is ${it.size}")
-
         }
 
 }
+
+fun part1(program: String) = paint(program)
+    .also {
+        logWithTime("Part 1:")
+        output(it)
+        logWithTime("hull is ${it.size}")
+    }
+    .size
+
 
 private fun paint(program: String, robotInitOp: PaintRobot.() -> Unit = {}): MutableMap<Pair<Int, Int>, BigInteger> {
     val memory = parseIntcode(program)

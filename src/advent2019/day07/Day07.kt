@@ -15,18 +15,27 @@ fun main() {
     val programStr = readAllLines("data/input-2019-07.txt").first()
         .also { logWithTime("Program length (chars): ${it.length}") }
 
-    permutations(5)
-        .map { it.map { i -> i.toBigInteger() } }
-        .map { it to run(programStr, it) }
-        .maxBy { it.second }
+    part1(programStr)
         .also { logWithTime("task1: $it") }
 
-    permutations(5)
-        .map { it.map { i -> i.toBigInteger() + 5.toBigInteger() } }
-        .map { it to run2(programStr, it) }
-        .maxBy { it.second }
+    part2(programStr)
         .also { logWithTime("task2: $it") }
 }
+
+fun part1(programStr: String) = permutations(5)
+    .map { it.map { i -> i.toBigInteger() } }
+    .map { it to run(programStr, it) }
+    .map { it.second }
+    .max()
+
+fun part2(programStr: String): BigInteger? {
+    return permutations(5)
+        .map { it.map { i -> i.toBigInteger() + 5.toBigInteger() } }
+        .map { it to run2(programStr, it) }
+        .map { it.second }
+        .max()
+}
+
 
 fun run(programStr: String, input: List<BigInteger>): BigInteger {
     var output = BigInteger.ZERO
