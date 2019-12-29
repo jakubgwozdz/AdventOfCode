@@ -28,6 +28,8 @@ data class SearchState(
 
 class DecisionMaker(val state: SearchState) {
 
+    var manual = false
+
     private fun itemToTake(room: Room): String? =
         if (state.weightState == WeightState.TOO_HEAVY || state.weightState == WeightState.OK) null
         else room.items
@@ -55,10 +57,19 @@ class DecisionMaker(val state: SearchState) {
         .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
 
     fun makeDecision(): String {
+
+        if (manual) return readLine()!!
+
         val room = state.knownRooms[state.currentRoomId!!]!!
         return itemToTake(room)
             ?.let { takeItem(room, it) }
-            ?: makeMove(room, nextDirectionToCheck(room))
+            ?: nextDirectionToCheck(room)
+                ?.let { makeMove(room, nextDirectionToCheck(room)) }
+            ?: if (state.movements.isNotEmpty()) makeMove(room, null) else {
+                manual = true;
+                readLine()!!
+            }
+
     }
 
 }
