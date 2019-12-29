@@ -56,9 +56,16 @@ class DecisionMaker(val state: SearchState) {
         .filter { it in room.doors }
         .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
 
+    var recorded = mutableListOf("north", "north", "west", "north", "west", "west")
+
+    fun recordedOrManual(): String {
+        return if (recorded.isNotEmpty()) recorded.removeAt(0)
+        else readLine()!!
+    }
+
     fun makeDecision(): String {
 
-        if (manual) return readLine()!!
+        if (manual) return recordedOrManual()
 
         val room = state.knownRooms[state.currentRoomId!!]!!
         return itemToTake(room)
@@ -67,9 +74,8 @@ class DecisionMaker(val state: SearchState) {
                 ?.let { makeMove(room, nextDirectionToCheck(room)) }
             ?: if (state.movements.isNotEmpty()) makeMove(room, null) else {
                 manual = true;
-                readLine()!!
+                recordedOrManual()
             }
-
     }
 
 }
@@ -80,13 +86,20 @@ class SearchUpdater(val state: SearchState) {
         is RoomDescription -> room(output)
         is RoomWithTeleportDescription -> teleport(output)
         is TakeActionDescription -> itemTaken(output)
+        is DropActionDescription -> itemDrop(output)
         is Prompt -> error("'Command?' not allowed here")
     }
 
     private fun itemTaken(output: TakeActionDescription) {
-        val item = takeRegex.matchEntire(output.line)!!.groupValues[1]
+        val item = output.item
         state.inventory += item
         state.knownRooms.compute(state.currentRoomId!!) { name, room -> room!!.copy(items = room.items - item) }
+    }
+
+    private fun itemDrop(output: DropActionDescription) {
+        val item = output.item
+        state.inventory -= item
+        state.knownRooms.compute(state.currentRoomId!!) { name, room -> room!!.copy(items = room.items + item) }
     }
 
     private fun teleport(description: RoomWithTeleportDescription) {
@@ -99,6 +112,7 @@ class SearchUpdater(val state: SearchState) {
         val cause = alertRegex.matchEntire(description.reason)!!.groupValues[1]
         state.weightState = when (cause) {
             "heavier" -> WeightState.TOO_LIGHT
+            "lighter" -> WeightState.TOO_HEAVY
             else -> TODO(cause)
         }
     }
@@ -221,16 +235,20 @@ class SearchTree<D : Any, T : Any>() {
 sealed class Output
 object Prompt : Output()
 data class RoomDescription(val room: Room) : Output()
-data class TakeActionDescription(val line: String) : Output()
+data class TakeActionDescription(val item: String) : Output()
+data class DropActionDescription(val item: String) : Output()
 data class RoomWithTeleportDescription(val room: Room, val reason: String) : Output()
 
 val alertRegex =
-    Regex("A loud, robotic voice says \"Alert! Droids on this ship are (heavier) than the detected value!\" and you are ejected back to the checkpoint.")
+    Regex("A loud, robotic voice says \"Alert! Droids on this ship are (heavier|lighter) than the detected value!\" and you are ejected back to the checkpoint.")
+val roomNameRegex = Regex("== (.+) ==")
+val takeRegex = Regex("You take the (.+)\\.")
+val dropRegex = Regex("You drop the (.+)\\.")
 
 
 class OutputParser() {
 
-    enum class State { START, BUILDING_ROOM, AFTER_TELEPORT, AFTER_TAKE }
+    enum class State { START, BUILDING_ROOM, AFTER_TELEPORT, AFTER_TAKE, LISTING_INVENTORY }
 
     var state = State.START
     val roomBuilder = RoomBuilder()
@@ -244,15 +262,28 @@ class OutputParser() {
 
     fun accept(line: String) {
         state = when (state) {
-            State.START, State.AFTER_TELEPORT, State.AFTER_TAKE -> when {
+            State.START -> when {
                 line.isBlank() -> state
                 roomNameRegex.matches(line) -> {
                     roomBuilder.accept(line)
                     State.BUILDING_ROOM
                 }
                 takeRegex.matches(line) -> {
-                    builtOutputs.add(TakeActionDescription(line))
+                    builtOutputs.add(TakeActionDescription(takeRegex.matchEntire(line)!!.groupValues[1]))
                     State.AFTER_TAKE
+                }
+                dropRegex.matches(line) -> {
+                    builtOutputs.add(DropActionDescription(dropRegex.matchEntire(line)!!.groupValues[1]))
+                    State.AFTER_TAKE
+                }
+                line == "Items in your inventory:" -> State.LISTING_INVENTORY
+                else -> state // ignore
+            }
+            State.AFTER_TELEPORT -> when {
+                line.isBlank() -> state
+                roomNameRegex.matches(line) -> {
+                    roomBuilder.accept(line)
+                    State.BUILDING_ROOM
                 }
                 else -> TODO("$state, $line")
             }
@@ -266,6 +297,7 @@ class OutputParser() {
                     state
                 }
             }
+            State.LISTING_INVENTORY, State.AFTER_TAKE -> state // just ignore
         }
     }
 
@@ -274,7 +306,7 @@ class OutputParser() {
             builtOutputs.add(RoomDescription(roomBuilder.build()))
             builtOutputs.toList().also { clear() }
         }
-        State.AFTER_TAKE -> {
+        State.AFTER_TAKE, State.LISTING_INVENTORY -> {
             builtOutputs.toList().also { clear() }
         }
         else -> error("Unexpected 'Command?' in state $state")
