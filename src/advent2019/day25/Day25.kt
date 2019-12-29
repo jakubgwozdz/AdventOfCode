@@ -24,7 +24,8 @@ data class SearchState(
     var lastMovement: Direction? = null,
     val knownDirectionsToPlaces: MutableMap<String, List<Pair<String, Direction>>> = mutableMapOf(),
     var weightState: WeightState = WeightState.UNKNOWN,
-    val inventory: MutableList<String> = mutableListOf()
+    val inventory: MutableList<String> = mutableListOf(),
+    var result: String? = null
 )
 
 class DecisionMaker(val state: SearchState) {
@@ -59,7 +60,7 @@ class DecisionMaker(val state: SearchState) {
         .filter { it in room.doors }
         .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
 
-        var recorded = mutableListOf("drop coin", "drop candy cane", "drop mutex", "drop fuel cell", "west")
+    var recorded = mutableListOf("drop coin", "drop candy cane", "drop mutex", "drop fuel cell", "west")
 //    var recorded = mutableListOf<String>()
 
     fun recordedOrManual(): String {
@@ -107,18 +108,19 @@ class SearchUpdater(val state: SearchState) {
         is TakeActionDescription -> itemTaken(output)
         is DropActionDescription -> itemDrop(output)
         is Prompt -> error("'Command?' not allowed here")
+        is Success -> state.result = output.code
     }
 
     private fun itemTaken(output: TakeActionDescription) {
         val item = output.item
         state.inventory += item
-        state.knownRooms.compute(state.currentRoomId!!) { name, room -> room!!.copy(items = room.items - item) }
+        state.knownRooms.compute(state.currentRoomId!!) { _, room -> room!!.copy(items = room.items - item) }
     }
 
     private fun itemDrop(output: DropActionDescription) {
         val item = output.item
         state.inventory -= item
-        state.knownRooms.compute(state.currentRoomId!!) { name, room -> room!!.copy(items = room.items + item) }
+        state.knownRooms.compute(state.currentRoomId!!) { _, room -> room!!.copy(items = room.items + item) }
     }
 
     private fun teleport(description: RoomWithTeleportDescription) {
@@ -132,7 +134,7 @@ class SearchUpdater(val state: SearchState) {
         state.weightState = when (cause) {
             "heavier" -> WeightState.TOO_LIGHT
             "lighter" -> WeightState.TOO_HEAVY
-            else -> TODO(cause)
+            else -> error(cause)
         }
     }
 
@@ -161,7 +163,7 @@ private fun <E, T> List<E>.compact(discriminatorOp: (E) -> T): List<E> {
 
     val loops = this.groupBy(discriminatorOp)
         .mapValues { (_, v) -> v.count() }
-        .filterValues { it> 1 }
+        .filterValues { it > 1 }
         .keys
     val i = indexOfFirst { discriminatorOp(it) in loops }
     if (i < 0) return result
@@ -199,6 +201,8 @@ class Cryostasis(val program: Memory) {
                     else -> stateUpdater.update(it)
                 }
             }
+
+        state.result!!
     }
 
 }
@@ -270,19 +274,22 @@ data class RoomDescription(val room: Room) : Output()
 data class TakeActionDescription(val item: String) : Output()
 data class DropActionDescription(val item: String) : Output()
 data class RoomWithTeleportDescription(val room: Room, val reason: String) : Output()
+data class Success(val code: String) : Output()
 
 val alertRegex =
     Regex("A loud, robotic voice says \"Alert! Droids on this ship are (heavier|lighter) than the detected value!\" and you are ejected back to the checkpoint.")
 val proceedRegex =
     Regex("A loud, robotic voice says \"Analysis complete! You may proceed.\" and you enter the cockpit.")
+val successRegex =
+    Regex("\"Oh, hello! You should be able to get in by typing (.+) on the keypad at the main airlock.\"")
 val roomNameRegex = Regex("== (.+) ==")
 val takeRegex = Regex("You take the (.+)\\.")
 val dropRegex = Regex("You drop the (.+)\\.")
 
 
-class OutputParser() {
+class OutputParser {
 
-    enum class State { START, BUILDING_ROOM, AFTER_TELEPORT, AFTER_TAKE, LISTING_INVENTORY }
+    enum class State { START, BUILDING_ROOM, AFTER_TELEPORT, AFTER_TAKE, LISTING_INVENTORY, SUCCESS }
 
     var state = State.START
     val roomBuilder = RoomBuilder()
@@ -310,6 +317,10 @@ class OutputParser() {
                     builtOutputs.add(DropActionDescription(dropRegex.matchEntire(line)!!.groupValues[1]))
                     State.AFTER_TAKE
                 }
+                successRegex.matches(line) -> {
+                    builtOutputs.add(Success(successRegex.matchEntire(line)!!.groupValues[1]))
+                    State.SUCCESS
+                }
                 line == "Items in your inventory:" -> State.LISTING_INVENTORY
                 else -> state // ignore
             }
@@ -328,7 +339,7 @@ class OutputParser() {
                     State.AFTER_TELEPORT
                 }
                 proceedRegex.matches(line) -> {
-                    builtOutputs.add(RoomWithTeleportDescription(roomBuilder.build(), line))
+//                    builtOutputs.add(RoomWithTeleportDescription(roomBuilder.build(), line))
                     roomBuilder.clear()
                     State.START
                 }
@@ -338,6 +349,7 @@ class OutputParser() {
                 }
             }
             State.LISTING_INVENTORY, State.AFTER_TAKE -> state // just ignore
+            State.SUCCESS -> TODO()
         }
     }
 
@@ -346,11 +358,9 @@ class OutputParser() {
             builtOutputs.add(RoomDescription(roomBuilder.build()))
             builtOutputs.toList().also { clear() }
         }
-        State.AFTER_TAKE, State.LISTING_INVENTORY, State.START -> {
-            builtOutputs.toList().also { clear() }
-        }
-        else -> error("Unexpected 'Command?' in state $state")
-
+        State.AFTER_TAKE, State.LISTING_INVENTORY, State.START -> builtOutputs.toList().also { clear() }
+        State.SUCCESS -> builtOutputs.toList().also { clear() }
+        State.AFTER_TELEPORT -> error("Unexpected end of output in state $state")
     }
 
 }
@@ -370,6 +380,7 @@ fun Flow<String>.outputs(): Flow<Output> =
                 else -> builder.accept(line)
             }
         }
+        builder.build().forEach { emit(it) }
     }
 
 
@@ -381,6 +392,7 @@ fun main() {
     val cryostasis = Cryostasis(parseIntcode(input))
     try {
         cryostasis.start()
+            .also { logWithTime("part 1: $it") }
     } catch (e: Throwable) {
         System.err.println(e)
         System.err.println("movements: " + cryostasis.state.movements)
@@ -393,8 +405,6 @@ fun main() {
             .filter { it.startsWith("advent") }
             .forEach { System.err.println("  at $it") }
     }
-//    goSpring(input, spring1())
-//        .also { logWithTime("part 1: $it") }
 
 //    goSpring(input, spring2())
 //        .also { logWithTime("part 2: $it") }
