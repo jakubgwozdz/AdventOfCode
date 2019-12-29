@@ -18,12 +18,50 @@ enum class WeightState { UNKNOWN, TOO_HEAVY, TOO_LIGHT, OK }
 data class SearchState(
     val knownRooms: MutableMap<String, Room> = mutableMapOf(),
     val knownExits: MutableMap<String, MutableMap<Direction, String>> = mutableMapOf(),
-    val movements: LinkedList<Pair<String, Direction>> = LinkedList(), var currentRoom: Room? = null,
+    val movements: LinkedList<Pair<String, Direction>> = LinkedList(),
+    var currentRoomId: String? = null,
     var lastMovement: Direction? = null,
     val knownDirectionsToPlaces: MutableMap<String, List<Pair<String, Direction>>> = mutableMapOf(),
     var weightState: WeightState = WeightState.UNKNOWN,
     val inventory: MutableList<String> = mutableListOf()
 )
+
+class DecisionMaker(val state: SearchState) {
+
+    private fun itemToTake(room: Room): String? =
+        if (state.weightState == WeightState.TOO_HEAVY || state.weightState == WeightState.OK) null
+        else room.items
+            .firstOrNull { it !in forbiddenItems }
+
+    private fun takeItem(room: Room, item: String): String {
+        return "take $item"
+    }
+
+    // TODO - move $state modification somewhere else
+    private fun makeMove(room: Room, directionToCheck: Direction?): String {
+        val movement = directionToCheck
+            ?.also { state.movements += room.name to it }
+            ?: state.movements.removeLast()
+                .second
+                .back
+        state.lastMovement = movement
+
+        return movement.text
+    }
+
+    fun nextDirectionToCheck(room: Room): Direction? = (state.lastMovement ?: Direction.N)
+        .let { listOf(it.left, it, it.right, it.back) }
+        .filter { it in room.doors }
+        .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
+
+    fun makeDecision(): String {
+        val room = state.knownRooms[state.currentRoomId!!]!!
+        return itemToTake(room)
+            ?.let { takeItem(room, it) }
+            ?: makeMove(room, nextDirectionToCheck(room))
+    }
+
+}
 
 class SearchUpdater(val state: SearchState) {
 
@@ -31,20 +69,16 @@ class SearchUpdater(val state: SearchState) {
         is RoomDescription -> room(output)
         is RoomWithTeleportDescription -> teleport(output)
         is TakeActionDescription -> itemTaken(output)
+        is Prompt -> error("'Command?' not allowed here")
     }
 
-    private fun itemTaken(output: TakeActionDescription): String {
+    private fun itemTaken(output: TakeActionDescription) {
         val item = takeRegex.matchEntire(output.line)!!.groupValues[1]
         state.inventory += item
-        val room = state.currentRoom!!
-        val newRoom = room.copy(items = room.items - item)
-        state.knownRooms[room.name] = newRoom
-        return itemToTake(newRoom)
-            ?.let { takeItem(room, room.items.first()) }
-            ?: makeMove(room, nextDirectionToCheck(room))
+        state.knownRooms.compute(state.currentRoomId!!) { name, room -> room!!.copy(items = room.items - item) }
     }
 
-    private fun teleport(description: RoomWithTeleportDescription): String {
+    private fun teleport(description: RoomWithTeleportDescription) {
         val room = description.room
         updateMap(room)
         state.lastMovement = null
@@ -56,62 +90,26 @@ class SearchUpdater(val state: SearchState) {
             "heavier" -> WeightState.TOO_LIGHT
             else -> TODO(cause)
         }
-        return ""
     }
 
-    private fun room(description: RoomDescription): String {
+    private fun room(description: RoomDescription) {
         val room = description.room
         updateMap(room)
-        return itemToTake(room)
-            ?.let { takeItem(room, room.items.first()) }
-            ?: makeMove(room, nextDirectionToCheck(room))
-    }
-
-    private fun itemToTake(room: Room): String? =
-        if (state.weightState == WeightState.TOO_HEAVY || state.weightState == WeightState.OK) null
-        else room.items
-            .firstOrNull { it !in forbiddenItems }
-
-    private fun takeItem(room: Room, item: String): String {
-        return "take $item"
-    }
-
-    private fun makeMove(room: Room, directionToCheck: Direction?): String {
-        val movement = directionToCheck
-            ?.also { state.movements += room.name to it }
-            ?: state.movements.removeLast()
-//                .also { logWithTime("No unknown exit, TURNING AROUND") }
-                //                        .also { if (it.first != prevRoom!!.name) error("last movement $it should be from ${prevRoom.name}") }
-                .second
-                .back
-        state.lastMovement = movement
-
-        return movement.text
     }
 
     private fun updateMap(room: Room) {
-        val prevRoom = state.currentRoom
-//        logWithTime("Previous room: ${prevRoom?.name}, movements so far: ${state.movements}")
-
-        val knownExitsFromRoom = room.doors.map { it to state.knownExits[room.name]?.get(it) }
-//        logWithTime("Current room: ${room.name}, exits: $knownExitsFromRoom")
+        val prevRoomId = state.currentRoomId
 
         val visitedAlready =
             state.knownRooms[room.name]?.also { if (it != room) error("this room was $it, now it's $room") }
         state.knownRooms[room.name] = room
-        state.currentRoom = room
+        state.currentRoomId = room.name
 
-        if (prevRoom != null && state.lastMovement != null) {
-            state.knownExits.computeIfAbsent(prevRoom.name) { mutableMapOf() }[state.lastMovement!!] = room.name
+        if (prevRoomId != null && state.lastMovement != null) {
+            state.knownExits.computeIfAbsent(prevRoomId) { mutableMapOf() }[state.lastMovement!!] = room.name
         }
         state.knownDirectionsToPlaces.computeIfAbsent(room.name) { state.movements.toList() }
     }
-
-    fun nextDirectionToCheck(room: Room): Direction? = (state.lastMovement ?: Direction.N)
-        .let { listOf(it.left, it, it.right, it.back) }
-        .filter { it in room.doors }
-//        .filter { it != Direction.W || room.name != "Security Checkpoint" }
-        .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
 
 }
 
@@ -119,6 +117,7 @@ class SearchUpdater(val state: SearchState) {
 class Cryostasis(val program: Memory) {
 
     val state = SearchState()
+    val decisionMaker = DecisionMaker(state)
     val stateUpdater = SearchUpdater(state)
 
     fun start() = runBlocking {
@@ -136,11 +135,12 @@ class Cryostasis(val program: Memory) {
             .map { it.toInt().toChar() }
             .fullLines()
             .onEach { println(it) }
-            .infos()
+            .outputs()
             .collect {
-                val command = stateUpdater.update(it)
-                if (command.isNotBlank())
-                    inChannel.writeln(command)
+                when (it) {
+                    is Prompt -> inChannel.writeln(decisionMaker.makeDecision())
+                    else -> stateUpdater.update(it)
+                }
             }
     }
 
@@ -208,6 +208,7 @@ class SearchTree<D : Any, T : Any>() {
 }
 
 sealed class Output
+object Prompt : Output()
 data class RoomDescription(val room: Room) : Output()
 data class TakeActionDescription(val line: String) : Output()
 data class RoomWithTeleportDescription(val room: Room, val reason: String) : Output()
@@ -273,13 +274,17 @@ class OutputParser() {
 
 
 @Suppress("BlockingMethodInNonBlockingContext")
-fun Flow<String>.infos(): Flow<Output> =
+fun Flow<String>.outputs(): Flow<Output> =
     flow {
         val builder = OutputParser()
-        collect {
-            when (it) {
-                "Command?" -> builder.build().forEach { emit(it) }.also { builder.clear() }
-                else -> builder.accept(it)
+        collect { line ->
+            when (line) {
+                "Command?" -> {
+                    builder.build().forEach { emit(it) }
+                    builder.clear()
+                    emit(Prompt)
+                }
+                else -> builder.accept(line)
             }
         }
     }
@@ -297,7 +302,7 @@ fun main() {
         System.err.println(e)
         System.err.println("movements: " + cryostasis.state.movements)
         System.err.println("lastMovement: " + cryostasis.state.lastMovement)
-        System.err.println("currentRoom: " + cryostasis.state.currentRoom)
+        System.err.println("currentRoom: " + cryostasis.state.currentRoomId)
         System.err.println("knownRooms: " + cryostasis.state.knownRooms)
         System.err.println("knownExits: " + cryostasis.state.knownExits)
         e.stackTrace
