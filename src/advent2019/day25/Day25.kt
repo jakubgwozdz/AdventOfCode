@@ -12,6 +12,7 @@ import java.math.BigInteger
 import java.util.*
 
 val forbiddenItems = listOf("escape pod", "giant electromagnet", "photons", "infinite loop", "molten lava")
+val checkpoint = "Security Checkpoint"
 
 enum class WeightState { UNKNOWN, TOO_HEAVY, TOO_LIGHT, OK }
 
@@ -28,7 +29,9 @@ data class SearchState(
 
 class DecisionMaker(val state: SearchState) {
 
-    var manual = false
+    enum class Phase { MAP_SCAN, GO_TO_SECURITY, MANUAL }
+
+    var phase = Phase.MAP_SCAN
 
     private fun itemToTake(room: Room): String? =
         if (state.weightState == WeightState.TOO_HEAVY || state.weightState == WeightState.OK) null
@@ -56,7 +59,8 @@ class DecisionMaker(val state: SearchState) {
         .filter { it in room.doors }
         .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
 
-    var recorded = mutableListOf("north", "north", "west", "north", "west", "west")
+    //    var recorded = mutableListOf("north", "north", "west", "north", "west", "west")
+    var recorded = mutableListOf<String>()
 
     fun recordedOrManual(): String {
         return if (recorded.isNotEmpty()) recorded.removeAt(0)
@@ -64,18 +68,33 @@ class DecisionMaker(val state: SearchState) {
     }
 
     fun makeDecision(): String {
-
-        if (manual) return recordedOrManual()
-
         val room = state.knownRooms[state.currentRoomId!!]!!
-        return itemToTake(room)
-            ?.let { takeItem(room, it) }
-            ?: nextDirectionToCheck(room)
-                ?.let { makeMove(room, nextDirectionToCheck(room)) }
-            ?: if (state.movements.isNotEmpty()) makeMove(room, null) else {
-                manual = true;
-                recordedOrManual()
+        return when (phase) {
+            Phase.MANUAL -> recordedOrManual()
+            Phase.MAP_SCAN -> {
+                return itemToTake(room)
+                    ?.let { takeItem(room, it) }
+                    ?: nextDirectionToCheck(room)
+                        ?.let { makeMove(room, nextDirectionToCheck(room)) }
+                    ?: if (state.movements.isNotEmpty()) makeMove(room, null) else {
+                        phase = Phase.GO_TO_SECURITY
+                        makeDecision()
+                    }
+
             }
+            Phase.GO_TO_SECURITY -> {
+                if (state.currentRoomId == checkpoint) {
+                    phase = Phase.MANUAL
+                    makeDecision()
+                } else {
+                    state.knownDirectionsToPlaces[checkpoint]!!
+                        .dropWhile { (roomId, _) -> roomId != state.currentRoomId }
+                        .first()
+                        .second.text
+                }
+            }
+        }
+
     }
 
 }
@@ -306,7 +325,7 @@ class OutputParser() {
             builtOutputs.add(RoomDescription(roomBuilder.build()))
             builtOutputs.toList().also { clear() }
         }
-        State.AFTER_TAKE, State.LISTING_INVENTORY -> {
+        State.AFTER_TAKE, State.LISTING_INVENTORY, State.START -> {
             builtOutputs.toList().also { clear() }
         }
         else -> error("Unexpected 'Command?' in state $state")
