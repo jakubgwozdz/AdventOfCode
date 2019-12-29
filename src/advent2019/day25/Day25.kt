@@ -59,8 +59,8 @@ class DecisionMaker(val state: SearchState) {
         .filter { it in room.doors }
         .firstOrNull { it !in state.knownExits[room.name]?.keys ?: emptyList<Direction>() }
 
-    //    var recorded = mutableListOf("north", "north", "west", "north", "west", "west")
-    var recorded = mutableListOf<String>()
+        var recorded = mutableListOf("drop coin", "drop candy cane", "drop mutex", "drop fuel cell", "west")
+//    var recorded = mutableListOf<String>()
 
     fun recordedOrManual(): String {
         return if (recorded.isNotEmpty()) recorded.removeAt(0)
@@ -273,6 +273,8 @@ data class RoomWithTeleportDescription(val room: Room, val reason: String) : Out
 
 val alertRegex =
     Regex("A loud, robotic voice says \"Alert! Droids on this ship are (heavier|lighter) than the detected value!\" and you are ejected back to the checkpoint.")
+val proceedRegex =
+    Regex("A loud, robotic voice says \"Analysis complete! You may proceed.\" and you enter the cockpit.")
 val roomNameRegex = Regex("== (.+) ==")
 val takeRegex = Regex("You take the (.+)\\.")
 val dropRegex = Regex("You drop the (.+)\\.")
@@ -319,12 +321,18 @@ class OutputParser() {
                 }
                 else -> TODO("$state, $line")
             }
-            State.BUILDING_ROOM -> {
-                if (alertRegex.matches(line)) {
+            State.BUILDING_ROOM -> when {
+                alertRegex.matches(line) -> {
                     builtOutputs.add(RoomWithTeleportDescription(roomBuilder.build(), line))
                     roomBuilder.clear()
                     State.AFTER_TELEPORT
-                } else {
+                }
+                proceedRegex.matches(line) -> {
+                    builtOutputs.add(RoomWithTeleportDescription(roomBuilder.build(), line))
+                    roomBuilder.clear()
+                    State.START
+                }
+                else -> {
                     roomBuilder.accept(line)
                     state
                 }
