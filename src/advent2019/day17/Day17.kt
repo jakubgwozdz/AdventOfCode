@@ -9,8 +9,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.math.BigInteger
-import java.math.BigInteger.ZERO
 import kotlin.system.measureTimeMillis
 
 @ExperimentalCoroutinesApi
@@ -34,7 +32,7 @@ fun main() {
         logWithTime("functionB: $functionB")
         logWithTime("functionC: $functionC")
 
-        val program2 = parseIntcode(input).also { it[0.toBigInteger()] = 2.toBigInteger() }
+        val program2 = parseIntcode(input).also { it[0] = 2 }
 
         moveRobot(program2, mainRoutine, functionA, functionB, functionC)
             .also { logWithTime("part 2: $it") }
@@ -51,8 +49,8 @@ private fun alignment(scaffolding: Scaffolding): Int =
 @FlowPreview
 @ExperimentalStdlibApi
 private fun drawMap(program: Memory): List<String> = runBlocking {
-    val inChannel = Channel<BigInteger>()
-    val outChannel = Channel<BigInteger>()
+    val inChannel = Channel<Long>()
+    val outChannel = Channel<Long>()
     val computer = Intcode(program, inChannel, outChannel, "ASCII")
     launch {
         computer.run()
@@ -73,12 +71,12 @@ private fun moveRobot(
     functionA: String,
     functionB: String,
     functionC: String
-): BigInteger {
+): Long {
     return runBlocking {
-        val inChannel = Channel<BigInteger>()
-        val outChannel = Channel<BigInteger>()
+        val inChannel = Channel<Long>()
+        val outChannel = Channel<Long>()
         val computer = Intcode(program, inChannel, outChannel, "ASCII")
-        var lastData = ZERO!!
+        var lastData = 0L
         launch {
             computer.run()
             inChannel.close()

@@ -7,7 +7,6 @@ import advent2019.readAllLines
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.math.BigInteger
 
 fun main() {
 
@@ -81,22 +80,22 @@ class Scanner(program: String) {
 
     val rom = parseIntcode(program)
 
-    operator fun get(p: Pair<Int, Int>) = (call(p.first, p.second) == BigInteger.ONE)
+    operator fun get(p: Pair<Int, Int>) = (call(p.first, p.second) == 1L)
         .also { print(if (it) "#" else ".") }
 
     fun call(x: Int, y: Int) =
         runBlocking {
 
-            val inChannel = Channel<BigInteger>()
-            val outChannel = Channel<BigInteger>()
+            val inChannel = Channel<Long>()
+            val outChannel = Channel<Long>()
             val computer = Intcode(rom.copy(), inChannel, outChannel, "BEAM")
             launch {
                 computer.run()
                 inChannel.close()
                 outChannel.close()
             }
-            inChannel.send(x.toBigInteger())
-            inChannel.send(y.toBigInteger())
+            inChannel.send(x.toLong())
+            inChannel.send(y.toLong())
             outChannel.receive()
         }
 }

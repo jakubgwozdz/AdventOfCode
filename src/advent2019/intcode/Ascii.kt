@@ -4,7 +4,6 @@ import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
-import java.math.BigInteger
 
 @Suppress("BlockingMethodInNonBlockingContext")
 fun Flow<Char>.fullLines(): Flow<String> =
@@ -18,8 +17,8 @@ fun Flow<Char>.fullLines(): Flow<String> =
         }
     }
 
-suspend fun SendChannel<BigInteger>.writeln(msg: String) {
+suspend fun SendChannel<Long>.writeln(msg: String) {
     println(msg)
-    msg.map { it.toInt().toBigInteger() }.forEach { send(it) }
-    send('\n'.toInt().toBigInteger())
+    msg.map { it.toInt().toLong() }.forEach { send(it) }
+    send('\n'.toInt().toLong())
 }

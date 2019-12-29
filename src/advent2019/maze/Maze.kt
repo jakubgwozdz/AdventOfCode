@@ -1,7 +1,5 @@
 package advent2019.maze
 
-import java.math.BigInteger
-
 data class Location(val y: Int, val x: Int) : Comparable<Location> {
     override fun toString() = "$y:$x"
     override fun compareTo(other: Location) = comparator.compare(this, other)
@@ -15,11 +13,11 @@ infix fun Int.yx(x: Int) = Location(this, x)
 
 typealias Delta = Pair<Int, Int>
 
-enum class Direction(val code: BigInteger, val delta: Delta) {
-    N(1.toBigInteger(), -1 to 0),
-    S(2.toBigInteger(), 1 to 0),
-    W(3.toBigInteger(), 0 to -1),
-    E(4.toBigInteger(), 0 to 1)
+enum class Direction(val code: Long, val delta: Delta) {
+    N(1, -1 to 0),
+    S(2, 1 to 0),
+    W(3, 0 to -1),
+    E(4, 0 to 1)
 }
 
 operator fun Location.plus(d: Direction) = this + d.delta

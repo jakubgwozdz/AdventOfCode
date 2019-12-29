@@ -1,6 +1,5 @@
 package advent2019
 
-import java.math.BigInteger
 import kotlin.math.absoluteValue
 
 
@@ -53,22 +52,11 @@ tailrec fun gcd(a: Long, b: Long): Long {
     }
 }
 
-tailrec fun gcd(a: BigInteger, b: BigInteger): BigInteger {
-    return when (a) {
-        BigInteger.ZERO -> b.abs()
-        else -> gcd(b.abs() % a.abs(), a.abs())
-    }
-}
-
 fun lcm(a: Int, b: Int): Int {
     return lcm(a.toLong(), b.toLong()).toInt()
 }
 
 fun lcm(a: Long, b: Long): Long {
-    return a * b / gcd(a, b)
-}
-
-fun lcm(a: BigInteger, b: BigInteger): BigInteger {
     return a * b / gcd(a, b)
 }
 

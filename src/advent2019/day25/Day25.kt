@@ -8,7 +8,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.math.BigInteger
 import java.util.*
 
 val forbiddenItems = listOf("escape pod", "giant electromagnet", "photons", "infinite loop", "molten lava")
@@ -187,8 +186,8 @@ class Cryostasis(val program: Memory) {
     val stateUpdater = SearchUpdater(state)
 
     fun start() = runBlocking {
-        val inChannel = Channel<BigInteger>()
-        val outChannel = Channel<BigInteger>()
+        val inChannel = Channel<Long>()
+        val outChannel = Channel<Long>()
         val computer = Intcode(program, inChannel, outChannel)
 
         launch {

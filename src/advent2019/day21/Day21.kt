@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.math.BigInteger
 
 @FlowPreview
 fun main() {
@@ -30,13 +29,13 @@ fun main() {
 }
 
 @FlowPreview
-private fun goSpring(input: String, springPrg: List<String>): BigInteger {
+private fun goSpring(input: String, springPrg: List<String>): Long {
     return runBlocking {
         val program = parseIntcode(input)
-        val inChannel = Channel<BigInteger>()
-        val outChannel = Channel<BigInteger>()
+        val inChannel = Channel<Long>()
+        val outChannel = Channel<Long>()
         val computer = Intcode(program, inChannel, outChannel, "ASCII")
-        var lastData = BigInteger.ZERO!!
+        var lastData = 0L
 
         launch {
             computer.run()

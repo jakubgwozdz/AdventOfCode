@@ -1,38 +1,34 @@
 package advent2019.intcode
 
-import java.math.BigInteger
-import java.math.BigInteger.ONE
-import java.math.BigInteger.ZERO
-
 sealed class Param {
-    abstract val value: BigInteger
+    abstract val value: Long
 }
 
-data class PositionParam(override val value: BigInteger) : Param() {
+data class PositionParam(override val value: Long) : Param() {
     override fun toString(): String {
         return "[$value]"
     }
 }
 
-data class ImmediateParam(override val value: BigInteger) : Param() {
+data class ImmediateParam(override val value: Long) : Param() {
     override fun toString(): String {
         return "$value"
     }
 }
 
-data class RelativeParam(override val value: BigInteger) : Param() {
+data class RelativeParam(override val value: Long) : Param() {
     override fun toString(): String {
         return when {
-            value < ZERO -> "[rb$value]"
-            value == ZERO -> "[rb]"
-            value > ZERO -> "[rb+$value]"
+            value < 0L -> "[rb$value]"
+            value == 0L -> "[rb]"
+            value > 0L -> "[rb+$value]"
             else -> error("$value")
         }
     }
 }
 
 sealed class Disassembly {
-    abstract val size: BigInteger
+    abstract val size: Long
 }
 
 data class Op(val name: String, val params: List<Param>) : Disassembly() {
@@ -40,20 +36,20 @@ data class Op(val name: String, val params: List<Param>) : Disassembly() {
         return "$name ${params.joinToString(", ")}"
     }
 
-    override val size: BigInteger
-        get() = ONE + params.size
+    override val size: Long
+        get() = 1L + params.size
 }
 
-data class Data(val value: BigInteger) : Disassembly() {
+data class Data(val value: Long) : Disassembly() {
     override fun toString(): String {
         return "DATA  $value"
     }
 
-    override val size: BigInteger
-        get() = ONE
+    override val size: Long
+        get() = 1
 }
 
-fun dissassembly(memory: Memory, addr: BigInteger): Disassembly {
+fun dissassembly(memory: Memory, addr: Long): Disassembly {
 
     fun params(count: Int): List<Param> {
         return (1..count).map {
@@ -68,16 +64,16 @@ fun dissassembly(memory: Memory, addr: BigInteger): Disassembly {
     return try {
         val opcode = opcode(memory[addr])
         when (opcode) {
-            1 -> Op("ADD  ", params(3))
-            2 -> Op("MUL  ", params(3))
-            3 -> Op("IN   ", params(1))
-            4 -> Op("OUT  ", params(1))
-            5 -> Op("JNZ  ", params(2))
-            6 -> Op("JZ   ", params(2))
-            7 -> Op("SETL ", params(3))
-            8 -> Op("SETE ", params(3))
-            9 -> Op("MOV   rb,", params(1))
-            99 -> Op("HALT ", emptyList())
+            1L -> Op("ADD  ", params(3))
+            2L -> Op("MUL  ", params(3))
+            3L -> Op("IN   ", params(1))
+            4L -> Op("OUT  ", params(1))
+            5L -> Op("JNZ  ", params(2))
+            6L -> Op("JZ   ", params(2))
+            7L -> Op("SETL ", params(3))
+            8L -> Op("SETE ", params(3))
+            9L -> Op("MOV   rb,", params(1))
+            99L -> Op("HALT ", emptyList())
             else -> error("unknown opcode ${memory[addr]} at addr $addr")
         }
     } catch (e: Exception) {
@@ -87,7 +83,7 @@ fun dissassembly(memory: Memory, addr: BigInteger): Disassembly {
 
 fun disassemblyProgram(program: String): Sequence<String> {
     val memory = parseIntcode(program)
-    var addr = ZERO
+    var addr = 0L
 
     return object : Iterator<String> {
         override fun hasNext(): Boolean = addr < memory.size

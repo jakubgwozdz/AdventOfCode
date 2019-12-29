@@ -1,18 +1,19 @@
 package advent2019.day13
 
 import advent2019.intcode.ChannelOutBuffer
-import advent2019.intcode.Intcode
 import advent2019.intcode.InBuffer
+import advent2019.intcode.Intcode
 import advent2019.intcode.parseIntcode
 import advent2019.logWithTime
 import advent2019.readAllLines
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.math.BigInteger
 
+@ExperimentalCoroutinesApi
 fun main() {
 
     val program = readAllLines("data/input-2019-13.txt").single()
@@ -29,7 +30,7 @@ fun part1(program: String): Int {
     val memory = parseIntcode(program)
 
     return runBlocking {
-        val outBuffer = Channel<BigInteger>(Channel.UNLIMITED)
+        val outBuffer = Channel<Long>(Channel.UNLIMITED)
         val comp = launch {
             Intcode(memory, Channel(), outBuffer, "ARCADE", false).run()
         }
@@ -44,16 +45,17 @@ fun part1(program: String): Int {
         .let { noOfBlocks(it) }
 }
 
+@ExperimentalCoroutinesApi
 fun part2(program: String): Int {
     val memory = parseIntcode(program)
-    memory[BigInteger.ZERO] = 2.toBigInteger()
+    memory[0] = 2L
 
     return runBlocking {
         val tiles = mutableMapOf<Pair<Int, Int>, Int>()
-        val output = Channel<BigInteger>(Channel.UNLIMITED)
-        val input = object : InBuffer<BigInteger> {
-            override suspend fun receive(): BigInteger {
-                return updateGame(tiles, output).toBigInteger()
+        val output = Channel<Long>(Channel.UNLIMITED)
+        val input = object : InBuffer<Long> {
+            override suspend fun receive(): Long {
+                return updateGame(tiles, output).toLong()
             }
         }
         val comp = launch {
@@ -67,7 +69,8 @@ fun part2(program: String): Int {
     }
 }
 
-suspend fun updateGame(tiles: MutableMap<Pair<Int, Int>, Int>, output: Channel<BigInteger>): Int {
+@ExperimentalCoroutinesApi
+suspend fun updateGame(tiles: MutableMap<Pair<Int, Int>, Int>, output: Channel<Long>): Int {
     while (!output.isEmpty) {
         val x = output.receive().toInt()
         val y = output.receive().toInt()

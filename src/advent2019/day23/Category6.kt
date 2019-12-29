@@ -1,6 +1,5 @@
 package advent2019.day23
 
-import advent2019.bi
 import advent2019.intcode.*
 import advent2019.logWithTime
 import advent2019.readAllLines
@@ -11,7 +10,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.flow
-import java.math.BigInteger
 
 @FlowPreview
 @ExperimentalCoroutinesApi
@@ -32,11 +30,11 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
     val program = parseIntcode(input)
 
-    fun puzzlePart1(): BigInteger {
+    fun puzzlePart1(): Long {
 
         val nics = (0 until 50)
             .map { id ->
-                NIC(id.toBigInteger(), program.copy())
+                NIC(id.toLong(), program.copy())
             }
             .associateBy { it.id }
 
@@ -54,7 +52,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
                             val addr = it.first
                             val packet = it.second
                             val outChannel = (nics[addr]?.inChannel
-                                ?: (if (addr == 255.bi) channel255 else error("unknown NIC $addr")))
+                                ?: (if (addr == 255L) channel255 else error("unknown NIC $addr")))
                             outChannel.send(packet)
                         }
                 }
@@ -80,14 +78,14 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
             .second
     }
 
-    fun puzzlePart2(): BigInteger {
+    fun puzzlePart2(): Long {
 
         val nat = Channel<Packet>()
         val resultChannel = Channel<Packet>()
 
         val nics = (0 until 50)
             .map { id ->
-                NIC(id.toBigInteger(), program.copy())
+                NIC(id.toLong(), program.copy())
             }
             .associateBy { it.id }
 
@@ -103,7 +101,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
                             val addr = it.first
                             val packet = it.second
                             val outChannel = (nics[addr]?.inChannel
-                                ?: (if (addr == 255.bi) nat else error("unknown NIC $addr")))
+                                ?: (if (addr == 255L) nat else error("unknown NIC $addr")))
                             outChannel.send(packet)
                         }
                 }
@@ -125,7 +123,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
             val natChannel = launch {
                 nat.consumeEach { packet ->
                     lastNatPacketChannel.send(packet)
-                        .also { logWithTime("NAT received $packet...") }
+                        .also { if (logging) logWithTime("NAT received $packet...") }
                 }
             }
 
@@ -136,7 +134,7 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
                     if (nics.values.all { it.isIdle }) {
                         val lastNatPacketReceived = lastNatPacketChannel.receive()
                         if (logging) logWithTime("NAT sends $lastNatPacketReceived...")
-                        nics[0.bi]!!.inChannel.send(lastNatPacketReceived)
+                        nics[0L]!!.inChannel.send(lastNatPacketReceived)
                         if (lastNatPacketReceived == lastNatPacketSent) {
                             if (logging) logWithTime("...it's same as previously")
                             resultChannel.send(lastNatPacketSent)
@@ -157,11 +155,11 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
     }
 }
 
-typealias Packet = Pair<BigInteger, BigInteger>
-typealias AddressedPacket = Pair<BigInteger, Packet>
+typealias Packet = Pair<Long, Long>
+typealias AddressedPacket = Pair<Long, Packet>
 
-fun Flow<BigInteger>.asPackets(): Flow<AddressedPacket> = flow {
-    val packet = mutableListOf<BigInteger>()
+fun Flow<Long>.asPackets(): Flow<AddressedPacket> = flow {
+    val packet = mutableListOf<Long>()
     collect {
         packet += it
         if (packet.size == 3) {
@@ -173,20 +171,20 @@ fun Flow<BigInteger>.asPackets(): Flow<AddressedPacket> = flow {
 
 @ExperimentalCoroutinesApi
 class NIC(
-    val id: BigInteger,
+    val id: Long,
     program: Memory,
-    val stateChangedChannel: Channel<Pair<BigInteger, Boolean>> = Channel(Channel.CONFLATED)
+    val stateChangedChannel: Channel<Pair<Long, Boolean>> = Channel(Channel.CONFLATED)
 ) {
 
     var isIdle = false
-    private val idleValue = listOf((-1).bi)
+    private val idleValue = listOf(-1L)
 
-    private val idleAnswerOp: suspend () -> List<BigInteger> = {
+    private val idleAnswerOp: suspend () -> List<Long> = {
         idleValue
             .also { isIdle = true }
     }
 
-    private val translateOp: suspend (Packet) -> List<BigInteger> = {
+    private val translateOp: suspend (Packet) -> List<Long> = {
         listOf(it.first, it.second)
             .also { isIdle = false }
     }
@@ -200,7 +198,7 @@ class NIC(
     )
         .apply { buffer.add(this@NIC.id) }
 
-    val outChannel = Channel<BigInteger>()
+    val outChannel = Channel<Long>()
     val comp = Intcode(program, inBuffer, ChannelOutBuffer(id, outChannel), id)
 
 }

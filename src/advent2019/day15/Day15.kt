@@ -10,8 +10,6 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.math.BigInteger
-import java.math.BigInteger.ZERO
 
 fun main() {
 
@@ -63,17 +61,17 @@ fun shortestTo(
 typealias Location = Pair<Int, Int>
 typealias Delta = Pair<Int, Int>
 
-enum class Direction(val code: BigInteger, val delta: Delta) {
-    N(1.toBigInteger(), -1 to 0),
-    S(2.toBigInteger(), 1 to 0),
-    W(3.toBigInteger(), 0 to -1),
-    E(4.toBigInteger(), 0 to 1)
+enum class Direction(val code: Long, val delta: Delta) {
+    N(1, -1 to 0),
+    S(2, 1 to 0),
+    W(3, 0 to -1),
+    E(4, 0 to 1)
 }
 
-enum class MapContent(val code: BigInteger, val canGoThrough: Boolean) {
-    Wall(0.toBigInteger(), false),
-    Space(1.toBigInteger(), true),
-    Target(2.toBigInteger(), true);
+enum class MapContent(val code: Long, val canGoThrough: Boolean) {
+    Wall(0, false),
+    Space(1, true),
+    Target(2, true);
 }
 
 operator fun Location.plus(d: Direction) = this + d.delta
@@ -85,8 +83,8 @@ fun mapShip(memory: Memory): Map<Location, MapContent> = runBlocking {
     var location = 0 to 0
     val map = mutableMapOf(location to MapContent.Space)
     val cameFrom = mutableMapOf<Location, Location>()
-    val inBuffer = Channel<BigInteger>()
-    val outBuffer = Channel<BigInteger>()
+    val inBuffer = Channel<Long>()
+    val outBuffer = Channel<Long>()
     val job = launch { Intcode(memory, inBuffer, outBuffer, "ROBOT").run() }
     while (job.isActive) {
         var direction = nextUnknown(location, map)
@@ -96,7 +94,7 @@ fun mapShip(memory: Memory): Map<Location, MapContent> = runBlocking {
             if (from != null) {
                 direction = from - location
             } else {
-                inBuffer.send(ZERO)
+                inBuffer.send(0)
                 continue
             }
         }

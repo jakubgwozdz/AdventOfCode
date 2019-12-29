@@ -11,7 +11,7 @@ interface Pathfinder<T : Any, R : Any> {
     fun findShortest(start: T, end: T): R?
 }
 
-open class DFSPathfinder<T : Any, D:Any, R : Any>(
+open class DFSPathfinder<T : Any, D : Any, R : Any>(
     val logging: Boolean,
     val cache: Cache<T, R>,
     val initialStateOp: () -> R,

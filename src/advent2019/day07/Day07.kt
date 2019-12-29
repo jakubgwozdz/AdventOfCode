@@ -8,7 +8,6 @@ import advent2019.readAllLines
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.math.BigInteger
 
 fun main() {
 
@@ -23,26 +22,26 @@ fun main() {
 }
 
 fun part1(programStr: String) = permutations(5)
-    .map { it.map { i -> i.toBigInteger() } }
+    .map { it.map { i -> i.toLong() } }
     .map { it to run(programStr, it) }
     .map { it.second }
     .max()
 
-fun part2(programStr: String): BigInteger? {
+fun part2(programStr: String): Long? {
     return permutations(5)
-        .map { it.map { i -> i.toBigInteger() + 5.toBigInteger() } }
+        .map { it.map { i -> i.toLong() + 5 } }
         .map { it to run2(programStr, it) }
         .map { it.second }
         .max()
 }
 
 
-fun run(programStr: String, input: List<BigInteger>): BigInteger {
-    var output = BigInteger.ZERO
+fun run(programStr: String, input: List<Long>): Long {
+    var output = 0L
     input.forEachIndexed { index, ampl ->
         val program = parseIntcode(programStr)
-        val inputBuffer = Channel<BigInteger>()
-        val outputBuffer = Channel<BigInteger>()
+        val inputBuffer = Channel<Long>()
+        val outputBuffer = Channel<Long>()
         val computer = Intcode(program, inputBuffer, outputBuffer, 'A' + index)
         output = runBlocking {
             launch { computer.run() }
@@ -56,10 +55,10 @@ fun run(programStr: String, input: List<BigInteger>): BigInteger {
     return output
 }
 
-fun run2(programStr: String, input: List<BigInteger>): BigInteger {
+fun run2(programStr: String, input: List<Long>): Long {
 
     val buffers = input.indices
-        .map { Channel<BigInteger>(Channel.UNLIMITED) }
+        .map { Channel<Long>(Channel.UNLIMITED) }
 
     val computers = input.indices
         .map { 'A' + it }
@@ -83,7 +82,7 @@ fun run2(programStr: String, input: List<BigInteger>): BigInteger {
                 buffer.send(input[index])
             }
 
-            buffers[0].send(BigInteger.ZERO)
+            buffers[0].send(0L)
         }
     }
 

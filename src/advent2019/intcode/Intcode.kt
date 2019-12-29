@@ -1,39 +1,37 @@
 package advent2019.intcode
 
-import advent2019.bi
+
 import advent2019.logWithTime
 import advent2019.remove
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
-import java.math.BigInteger
-import java.math.BigInteger.ZERO
 import java.util.*
 
-class Memory(initial: Map<BigInteger, BigInteger>) {
+class Memory(initial: Map<Long, Long>) {
     val map = initial.toMutableMap()
-    operator fun get(addr: BigInteger) = map[addr] ?: ZERO
-    operator fun set(addr: BigInteger, value: BigInteger) {
+    operator fun get(addr: Long) = map[addr] ?: 0L
+    operator fun set(addr: Long, value: Long) {
         map[addr] = value
     }
 
-    val size: BigInteger get() = map.keys.max() ?: ZERO
+    val size: Long get() = map.keys.max() ?: 0L
 
     fun copy() = Memory(map.toMutableMap())
 }
 
-fun opcode(operation: BigInteger): Int = operation % 100
+fun opcode(operation: Long) = operation % 100
 
 // params handling
 enum class ParamMode { Position, Immediate, Relative }
 
-fun nthParamMode(n: Int, operation: BigInteger): ParamMode {
+fun nthParamMode(n: Int, operation: Long): ParamMode {
     var mode = operation / 10
     repeat(n) { mode /= 10 }
     return when (mode % 10) {
-        0 -> ParamMode.Position
-        1 -> ParamMode.Immediate
-        2 -> ParamMode.Relative
+        0L -> ParamMode.Position
+        1L -> ParamMode.Immediate
+        2L -> ParamMode.Relative
         else -> error("Unknown mode in opcode $operation")
     }
 }
@@ -43,7 +41,7 @@ interface InBuffer<T> {
 }
 
 interface OutBuffer {
-    suspend fun send(v: BigInteger)
+    suspend fun send(v: Long)
     fun close(): Boolean
 }
 
@@ -83,8 +81,8 @@ class TranslatingNonblockingInBuffer<T : Any, P : Any, I : Any>(
 }
 
 
-class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val logIO: Boolean = false) : OutBuffer {
-    override suspend fun send(v: BigInteger) {
+class ChannelOutBuffer(val id: Any, val channel: SendChannel<Long>, val logIO: Boolean = false) : OutBuffer {
+    override suspend fun send(v: Long) {
         channel.also { if (logIO) print("$id --> $v...") }.send(v).also { if (logIO) println("\b\b\b done") }
     }
 
@@ -92,27 +90,27 @@ class ChannelOutBuffer(val id: Any, val channel: SendChannel<BigInteger>, val lo
 
 }
 
-var compId = 0.bi
+var compId = 0L
 
 class Intcode(
     val memory: Memory,
-    val inBuffer: InBuffer<BigInteger>,
+    val inBuffer: InBuffer<Long>,
     val outBuffer: OutBuffer,
     val id: Any = compId++,
     val debug: Boolean = false
 ) {
     constructor(
         memory: Memory,
-        receiveChannel: ReceiveChannel<BigInteger>,
-        sendChannel: SendChannel<BigInteger>,
+        receiveChannel: ReceiveChannel<Long>,
+        sendChannel: SendChannel<Long>,
         id: Any = compId++,
         debug: Boolean = false
     ) : this(memory, ChannelInBuffer(id, receiveChannel), ChannelOutBuffer(id, sendChannel), id, debug)
 
-    var ip: BigInteger = ZERO // instruction pointer
-    var rb: BigInteger = ZERO // relative base
+    var ip: Long = 0 // instruction pointer
+    var rb: Long = 0 // relative base
 
-    suspend fun read(): BigInteger {
+    suspend fun read(): Long {
         val job = GlobalScope.launch {
             delay(1000)
             logWithTime("Computer $id waits for input> ")
@@ -124,7 +122,7 @@ class Intcode(
         }
     }
 
-    suspend fun write(v: BigInteger) {
+    suspend fun write(v: Long) {
         val job = GlobalScope.launch {
             delay(1000)
             logWithTime("Computer $id wants to write> ")
@@ -136,9 +134,9 @@ class Intcode(
         }
     }
 
-    val operation: BigInteger get() = memory[ip]
+    val operation: Long get() = memory[ip]
 
-    private fun nthAddr(n: Int): BigInteger =
+    private fun nthAddr(n: Int): Long =
         when (nthParamMode(n, operation)) {
             ParamMode.Position -> memory[ip + n]
             ParamMode.Immediate -> ip + n
@@ -155,16 +153,16 @@ class Intcode(
             if (debug)
                 logWithTime("${ip.toString().padStart(6)}: ${dissassembly(memory, ip)}")
             when (opcode(operation)) {
-                1 -> opADD()
-                2 -> opMUL()
-                3 -> opIN()
-                4 -> opOUT()
-                5 -> opJNZ()
-                6 -> opJZ()
-                7 -> opSETL()
-                8 -> opSETE()
-                9 -> opMOVRB()
-                99 -> {
+                1L -> opADD()
+                2L -> opMUL()
+                3L -> opIN()
+                4L -> opOUT()
+                5L -> opJNZ()
+                6L -> opJZ()
+                7L -> opSETL()
+                8L -> opSETE()
+                9L -> opMOVRB()
+                99L -> {
 //                    outBuffer.close()
                     return
                 }
@@ -198,25 +196,25 @@ class Intcode(
 
     private fun opJNZ() {
         ip = when {
-            memory[firstAddr] != ZERO -> memory[secondAddr]
+            memory[firstAddr] != 0L -> memory[secondAddr]
             else -> ip + 3
         }
     }
 
     private fun opJZ() {
         ip = when {
-            memory[firstAddr] == ZERO -> memory[secondAddr]
+            memory[firstAddr] == 0L -> memory[secondAddr]
             else -> ip + 3
         }
     }
 
     private fun opSETL() {
-        memory[thirdAddr] = if (memory[firstAddr] < memory[secondAddr]) BigInteger.ONE else ZERO
+        memory[thirdAddr] = if (memory[firstAddr] < memory[secondAddr]) 1L else 0L
         ip += 4
     }
 
     private fun opSETE() {
-        memory[thirdAddr] = if (memory[firstAddr] == memory[secondAddr]) BigInteger.ONE else ZERO
+        memory[thirdAddr] = if (memory[firstAddr] == memory[secondAddr]) 1L else 0L
         ip += 4
     }
 
@@ -230,13 +228,13 @@ class Intcode(
 fun parseIntcode(input: String): Memory {
     return input
         .split(",")
-        .mapIndexed { index: Int, s: String -> index.toBigInteger() to s.trim().toBigInteger() }
+        .mapIndexed { index: Int, s: String -> index.toLong() to s.trim().toLong() }
         .toMap()
         .let { Memory(it) }
 }
 
-operator fun BigInteger.plus(n: Int): BigInteger = this + n.toBigInteger()
-
-operator fun BigInteger.div(i: Int): BigInteger = this / i.toBigInteger()
-
-operator fun BigInteger.rem(i: Int): Int = (this % i.toBigInteger()).toInt()
+//operator fun Long.plus(n: Int): Long = this + n.toLong()
+//
+//operator fun Long.div(i: Int): Long = this / i.toLong()
+//
+//operator fun Long.rem(i: Int): Int = (this % i.toLong()).toInt()

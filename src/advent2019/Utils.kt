@@ -8,10 +8,6 @@ import kotlin.coroutines.ContinuationInterceptor
 fun <T> oneOf(vararg v: T, predicate: (T) -> Boolean): T = v.single(predicate)
 fun <T> oneOfOrNull(vararg v: T, predicate: (T) -> Boolean): T? = v.singleOrNull(predicate)
 
-val Int.bi get() = toBigInteger()
-val Long.bi get() = toBigInteger()
-
-
 suspend fun nodelay() {
 //    if (timeMillis <= 0) return // don't delay
     return suspendCancellableCoroutine { cont: CancellableContinuation<Unit> ->

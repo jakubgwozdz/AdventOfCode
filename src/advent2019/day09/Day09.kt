@@ -1,6 +1,6 @@
 package advent2019.day09
 
-import advent2019.bi
+
 import advent2019.intcode.Intcode
 import advent2019.intcode.parseIntcode
 import advent2019.logWithTime
@@ -9,7 +9,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.math.BigInteger
 
 fun main() {
 
@@ -23,14 +22,14 @@ fun main() {
         .also { logWithTime("part2: $it") }
 }
 
-fun part1(programStr: String) = run1(programStr, listOf(1.bi)).single()
+fun part1(programStr: String) = run1(programStr, listOf(1L)).single()
 
-fun part2(programStr: String) = run1(programStr, listOf(2.bi)).single()
+fun part2(programStr: String) = run1(programStr, listOf(2L)).single()
 
-fun run1(programStr: String, input: List<BigInteger>): List<BigInteger> {
+fun run1(programStr: String, input: List<Long>): List<Long> {
 
-    val inBuffer = Channel<BigInteger>()
-    val outBuffer = Channel<BigInteger>(Channel.UNLIMITED)
+    val inBuffer = Channel<Long>()
+    val outBuffer = Channel<Long>(Channel.UNLIMITED)
     val computer = Intcode(parseIntcode(programStr), inBuffer, outBuffer, "BOOST")
 
     return runBlocking {
