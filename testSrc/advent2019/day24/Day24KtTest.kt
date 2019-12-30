@@ -4,6 +4,7 @@ import advent2019.readAllLines
 import org.junit.jupiter.api.Test
 import kotlin.test.expect
 
+@ExperimentalStdlibApi
 internal class Day24KtTest {
     @Test
     fun puzzlePart1() {
@@ -14,7 +15,7 @@ internal class Day24KtTest {
     @Test
     fun puzzlePart2() {
         val input = readAllLines("data/input-2019-24.txt")
-        expect(13331) { part2(input) }
+        expect(2003) { part2(input) }
     }
 
     @Test
@@ -33,7 +34,39 @@ internal class Day24KtTest {
             ##.##
             .##..
             """.trimIndent().lines()
-        expect(Eris(next)) { Eris(example).next() }
+        expect(Eris(next)) { Eris(example).nextSinglePlane() }
+    }
+
+    @Test
+    fun example1Alives() {
+        val example = """
+            ....#
+            #..#.
+            #..##
+            ..#..
+            #....
+            """.trimIndent().lines()
+        expect(10) {
+            var eris = Eris(example)
+            repeat(4) { eris = eris.nextSinglePlane() }
+            eris.alives
+        }
+    }
+
+    @Test
+    fun example2Alives() {
+        val example = """
+            ....#
+            #..#.
+            #..##
+            ..#..
+            #....
+            """.trimIndent().lines()
+        expect(99) {
+            var eris = Eris(example)
+            repeat(10) { eris = eris.nextMultiPlane() }
+            eris.alives
+        }
     }
 
     @Test
