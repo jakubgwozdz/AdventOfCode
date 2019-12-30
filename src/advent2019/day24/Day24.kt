@@ -25,35 +25,38 @@ fun part2(input: List<String>): Int {
     TODO()
 }
 
-class Eris(val map: List<String>) {
-    fun next(): Eris {
-        return map.indices.map { y ->
-            buildString {
-                map[y].indices.forEach { x ->
-                    val adj = listOf(y - 1 to x, y + 1 to x, y to x - 1, y to x + 1)
-                        .count { test(it.first, it.second) }
-                    val alive = if (test(y, x)) adj == 1 else adj == 1 || adj == 2
-                    append(if (alive) '#' else '.')
-                }
-            }
-        }.let { Eris(it) }
-    }
+data class Eris(val biodiversity: Int, val r: Int, val c: Int) {
 
-    fun test(y: Int, x: Int): Boolean = y in map.indices && x in map[y].indices && map[y][x] == '#'
+    constructor(map: List<String>) : this(biodiversity(map), map.size, map[0].length)
 
-    val biodiversity: Int by lazy {
-        map.mapIndexed { y: Int, l: String ->
-            l.mapIndexed { x, c ->
-                y * l.length + x to when (c) {
-                    '.' -> 0
-                    '#' -> 1
-                    else -> error("unknown '$c' @ row $y, column $x")
-                }
+    fun next(): Eris = (0 until r)
+        .flatMap { y ->
+            (0 until c).map { x ->
+                val adj = listOf(y - 1 to x, y + 1 to x, y to x - 1, y to x + 1)
+                    .count { test(it.first, it.second) }
+                val alive = if (test(y, x)) adj == 1 else adj == 1 || adj == 2
+                (if (alive) 1 else 0) shl (y * c + x)
             }
-                .filter { (_, c) -> c == 1 }
-                .map { (i, _) -> 1.shl(i) }
         }
-            .flatten()
-            .sum()
+        .sum()
+        .let { Eris(it, r, c) }
+
+    fun test(y: Int, x: Int): Boolean {
+        return y in (0 until r) && x in (0 until c) && (biodiversity shr (y * c + x)) % 2 == 1
     }
+
 }
+
+fun biodiversity(map: List<String>): Int = map.mapIndexed { y: Int, l: String ->
+    l.mapIndexed { x, c ->
+        y * l.length + x to when (c) {
+            '.' -> 0
+            '#' -> 1
+            else -> error("unknown '$c' @ row $y, column $x")
+        }
+    }
+        .filter { (_, c) -> c == 1 }
+        .map { (i, _) -> 1.shl(i) }
+}
+    .flatten()
+    .sum()

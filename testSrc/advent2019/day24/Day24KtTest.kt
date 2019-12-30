@@ -8,7 +8,7 @@ internal class Day24KtTest {
     @Test
     fun puzzlePart1() {
         val input = readAllLines("data/input-2019-24.txt")
-        expect(265) { part1(input) }
+        expect(23967691) { part1(input) }
     }
 
     @Test
@@ -33,7 +33,7 @@ internal class Day24KtTest {
             ##.##
             .##..
             """.trimIndent().lines()
-        expect(Eris(next).map) { Eris(example).next().map }
+        expect(Eris(next)) { Eris(example).next() }
     }
 
     @Test
