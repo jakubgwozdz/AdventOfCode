@@ -32,9 +32,9 @@ class Category6(val input: String, val size: Int = 50, val logging: Boolean = fa
 
     fun puzzlePart1(): Long {
 
-        val nics = (0 until 50)
+        val nics = (0L until 50)
             .map { id ->
-                NIC(id.toLong(), program.copy())
+                NIC(id, program.copy())
             }
             .associateBy { it.id }
 
