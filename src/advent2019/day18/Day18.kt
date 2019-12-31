@@ -8,11 +8,10 @@ import advent2019.pathfinder.BFSPathfinder
 import advent2019.readAllLines
 
 
-fun moves(input: List<String>) = moves(Maze(input))
+fun shortest(input: List<String>) = Vault(Maze(input)).shortest()
 
-fun moves(maze: Maze): Int {
+class Vault(val maze: Maze) {
 
-    maze.input.forEach { logWithTime(it) }
     val mazeAsMap: Map<Location, Char> =
         maze.mapIndexed { y: Int, s: String -> s.mapIndexed { x: Int, c: Char -> (y yx x) to c } }
             .flatten()
@@ -21,38 +20,54 @@ fun moves(maze: Maze): Int {
     val keys = (mazeAsMap.filterValues { it.isLowerCase() }).map { (l, c) -> c to l }.toMap()
     val doors = mazeAsMap.filterValues { it.isUpperCase() }.map { (l, c) -> c to l }.toMap()
 
-    logWithTime("start: $start")
-    logWithTime("keys: $keys")
-    logWithTime("doors: $doors")
-
     val pois = keys + doors + ('@' to start)
-    val paths = pois.map { s ->
+    val allPaths = pois.map { s ->
         s.key to pois.mapNotNull { e ->
             if (s == e) e.key to 0
             else maze.dist(s.value, e.value)?.let { e.key to it }
         }.toMap()
     }.toMap()
 
-    val bfsPathfinder = BFSPathfinder<Char, List<Path<Char>>, Int>(
-        logging = true,
-        initialStateOp = { emptyList() },
-        adderOp = { l, t ->
-            val last = l.lastOrNull()?.e ?: maze[start]!!
-            l + Path(last, t, paths[last]!![t]!!)
-        },
-        distanceOp = { l -> l.sumBy { it.dist } },
-        waysOutOp = { l, t ->
-            paths[t]!!.keys
-                .filter { it != t }
-                .filter {
-                    !it.isUpperCase() || it.toLowerCase() in l.map { p -> p.e }
-                }
-        }
-    )
 
-    return bfsPathfinder.findShortest('@') { l, t -> (l.map { it.e } + t).containsAll(keys.keys) }!!
-        .also { logWithTime(it) }
-        .sumBy { it.dist }
+    fun shortest(): Int {
+
+        maze.input.forEach { logWithTime(it) }
+
+        logWithTime("start: $start")
+        logWithTime("keys: $keys")
+        logWithTime("doors: $doors")
+
+        val bfsPathfinder = BFSPathfinder<Char, List<Path<Char>>, Int>(
+            logging = false,
+            initialStateOp = { emptyList() },
+            adderOp = { l, t ->
+                val last = l.lastOrNull()?.e ?: maze[start]!!
+                l + Path(last, t, allPaths[last]!![t]!!)
+            },
+            distanceOp = { l -> distance(l) },
+            waysOutOp = this::waysOut
+        )
+
+        return bfsPathfinder.findShortest('@') { l, t -> (l.map { it.e } + t).containsAll(keys.keys) }!!
+            .also { logWithTime(it) }
+            .let { distance(it) }
+    }
+
+    private fun distance(l: List<Path<Char>>): Int {
+        return l.sumBy { it.dist } * 100 + keys.size - l.map { it.e }.distinct().count { it.isLowerCase() }
+    }
+
+    private fun waysOut(
+        pathsSoFar: List<Path<Char>>,
+        current: Char
+    ): List<Char> {
+        val visited = pathsSoFar.map { p -> p.e }
+        val waysOut = allPaths[current]!!.keys
+            .filter { it != current }
+            .filter { !it.isUpperCase() || it.toLowerCase() in visited }
+            .filter { visited.size < 2 || visited[visited.size - 1].isLowerCase() || visited[visited.size - 2] != it }
+        return waysOut
+    }
 }
 
 data class Path<T : Comparable<T>>(val s: T, val e: T, val dist: Int) : Comparable<Path<T>> {
@@ -65,6 +80,6 @@ data class Path<T : Comparable<T>>(val s: T, val e: T, val dist: Int) : Comparab
 
 fun main() {
     val input = readAllLines("data/input-2019-18.txt")
-    moves(Maze(input))
+    shortest(input)
         .also { logWithTime("part 1: $it") }
 }

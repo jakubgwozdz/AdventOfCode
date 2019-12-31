@@ -14,7 +14,7 @@ internal class Day18KtTest {
             #b.A.@.a#
             #########
             """.trimIndent()
-        expect(8) { moves(input.lines()) }
+        expect(8) { shortest(input.lines()) }
     }
 
     @Test
@@ -26,7 +26,7 @@ internal class Day18KtTest {
             #d.....................#
             ########################
             """.trimIndent()
-        expect(86) { moves(input.lines()) }
+        expect(86) { shortest(input.lines()) }
     }
 
     @Test
@@ -38,7 +38,7 @@ internal class Day18KtTest {
             #.....@.a.B.c.d.A.e.F.g#
             ########################
             """.trimIndent()
-        expect(132) { moves(input.lines()) }
+        expect(132) { shortest(input.lines()) }
     }
 
     @Test
@@ -55,7 +55,7 @@ internal class Day18KtTest {
             #################
             """.trimIndent()
         Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10)) {
-            expect(136) { moves(input.lines()) }
+            expect(136) { shortest(input.lines()) }
         }
     }
 
@@ -69,7 +69,7 @@ internal class Day18KtTest {
             ###g#h#i################
             ########################
             """.trimIndent()
-        expect(81) { moves(input.lines()) }
+        expect(81) { shortest(input.lines()) }
     }
 
     //    @Test
