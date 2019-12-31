@@ -11,59 +11,69 @@ internal class Day18KtTest {
 
     @Test
     fun part1Test1() {
-        val input = """#########
-#b.A.@.a#
-#########""".lines()
-        expect(8) { moves(input) }
+        val input = """
+            #########
+            #b.A.@.a#
+            #########
+            """.trimIndent()
+        expect(8) { moves(input.lines()) }
     }
 
     @Test
     fun part1Test2() {
-        val input = """########################
-#f.D.E.e.C.b.A.@.a.B.c.#
-######################.#
-#d.....................#
-########################""".lines()
-        expect(86) { moves(input) }
+        val input = """
+            ########################
+            #f.D.E.e.C.b.A.@.a.B.c.#
+            ######################.#
+            #d.....................#
+            ########################
+            """.trimIndent()
+        expect(86) { moves(input.lines()) }
     }
 
     @Test
     fun part1Test3() {
-        val input = """########################
-#...............b.C.D.f#
-#.######################
-#.....@.a.B.c.d.A.e.F.g#
-########################""".lines()
-        expect(132) { moves(input) }
+        val input = """
+            ########################
+            #...............b.C.D.f#
+            #.######################
+            #.....@.a.B.c.d.A.e.F.g#
+            ########################
+            """.trimIndent()
+        expect(132) { moves(input.lines()) }
     }
 
     @Test
     @Timeout(1)
     @Disabled
     fun part1Test4() {
-        val input = """#################
-#i.G..c...e..H.p#
-########.########
-#j.A..b...f..D.o#
-########@########
-#k.E..a...g..B.n#
-########.########
-#l.F..d...h..C.m#
-#################""".lines()
+        val input = """
+            #################
+            #i.G..c...e..H.p#
+            ########.########
+            #j.A..b...f..D.o#
+            ########@########
+            #k.E..a...g..B.n#
+            ########.########
+            #l.F..d...h..C.m#
+            #################
+            """.trimIndent()
         Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10)) {
-            expect(136) { moves(input) }
+            expect(136) { moves(input.lines()) }
         }
     }
 
     @Test
     fun part1Test5() {
-        val input = """########################
-#@..............ac.GI.b#
-###d#e#f################
-###A#B#C################
-###g#h#i################
-########################""".lines()
-        expect(81) { moves(input) }
+        val input = """
+            ########################
+            #@..............ac.GI.b#
+            ###d#e#f################
+            ###A#B#C################
+            ###g#h#i################
+            ########################
+            """.trimIndent()
+        expect(81) { moves(input.lines()) }
     }
 
     //    @Test
