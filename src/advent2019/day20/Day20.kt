@@ -64,6 +64,8 @@ data class ConnectionOnLevel(
 
 class Donut(val maze: Maze) {
 
+    constructor(input: List<String>) : this(Maze(input))
+
     val portals: Set<Portal> by lazy { findPortals(maze) }
     val roads: Set<Connection> by lazy { findConnections(maze, portals, false) }
 

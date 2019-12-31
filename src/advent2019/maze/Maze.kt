@@ -31,16 +31,22 @@ fun List<Location>.from(pos: Location): List<Direction> {
     return map { n -> (n - acc).also { acc = n } }
 }
 
-typealias Maze = List<String>
+data class Maze(val input: List<String>) {
+    val size = input.size
+    fun mapIndexed(function: (Int, String) -> List<Pair<Location, Char>>) = input.mapIndexed(function)
 
-operator fun Maze.get(what: Location) =
-    if (what.y in this.indices && what.x in this[what.y].indices) this[what.y][what.x] else null
+    operator fun get(y: Int) = input[y]
 
-fun Maze.dist(s: Location, e: Location): Int? {
-    return BasicPathfinder<Location> { l, t ->
-        Direction.values()
-            .map { t + it }
-            .filter { t1 -> t1 == e || this[t1] == '.' }
-    }.findShortest(s, e)
-        ?.let { it.size - 1 }
+    operator fun get(what: Location) =
+        if (what.y in this.input.indices && what.x in this.input[what.y].indices) this.input[what.y][what.x] else null
+
+    fun dist(s: Location, e: Location): Int? {
+        return BasicPathfinder<Location> { l, t ->
+            Direction.values()
+                .map { t + it }
+                .filter { t1 -> t1 == e || this[t1] == '.' }
+        }.findShortest(s, e)
+            ?.let { it.size - 1 }
+    }
+
 }
