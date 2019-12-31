@@ -2,6 +2,7 @@ package advent2019.day18
 
 import advent2019.logWithTime
 import advent2019.maze.*
+import advent2019.pathfinder.BFSPathfinder
 import advent2019.readAllLines
 
 
@@ -47,24 +48,56 @@ fun moves(maze: Maze): Int {
         maze.mapIndexed { y: Int, s: String -> s.mapIndexed { x: Int, c: Char -> (y yx x) to c } }
             .flatten()
             .toMap()
-    val pos = mazeAsMap.entries.single { (l, c) -> c == '@' }.key
-    val keys = (mazeAsMap.filterValues { it.isLowerCase() || it == '@' }).map { (l, c) -> c to l }.toMap()
+    val start = mazeAsMap.entries.single { (l, c) -> c == '@' }.key
+    val keys = (mazeAsMap.filterValues { it.isLowerCase() }).map { (l, c) -> c to l }.toMap()
     val doors = mazeAsMap.filterValues { it.isUpperCase() }.map { (l, c) -> c to l }.toMap()
 
-    logWithTime("start: $pos")
+    logWithTime("start: $start")
     logWithTime("keys: $keys")
     logWithTime("doors: $doors")
 
-    val cache = Cache<Char>()
-    keys.keys.flatMap { a -> keys.keys.map { b -> a to b } }
-        .filter { (a, b) -> a < b }
-        .mapNotNull { (a, b) -> shortestDistanceTo(keys[a]!!, keys[b]!!, maze, emptySet())?.let { (a to b) to it } }
-        .forEach { (pair, distance) -> cache.d[pair] = distance.also { logWithTime("$pair=$distance") } }
+//    val cache = Cache<Char>()
+//    keys.keys.flatMap { a -> keys.keys.map { b -> a to b } }
+//        .filter { (a, b) -> a < b }
+//        .mapNotNull { (a, b) -> shortestDistanceTo(keys[a]!!, keys[b]!!, maze, emptySet())?.let { (a to b) to it } }
+//        .forEach { (pair, distance) -> cache.d[pair] = distance.also { logWithTime("$pair=$distance") } }
+//
+//    return pathToAllKeys('@', maze, keys, emptySet(), cache)
+//        .also { logWithTime("$it") }
+//        .let { it.sumBy { (_, l) -> l } }
 
-    return pathToAllKeys('@', maze, keys, emptySet(), cache)
-        .also { logWithTime("$it") }
-        .let { it.sumBy { (_, l) -> l } }
+    val pois = keys.values + doors.values + start
+    val paths = pois.map { s ->
+        s to pois.mapNotNull { e ->
+            if (s == e) e to 0
+            else maze.dist(s, e)?.let { e to it }
+        }.toMap()
+    }.toMap()
 
+    val bfsPathfinder = BFSPathfinder<Location, List<Path>, Int>(
+        logging = true,
+        initialStateOp = { emptyList() },
+        adderOp = { l, t ->
+            val last = l.lastOrNull()?.e ?: start
+            l + Path(last, t, paths[last]!![t]!!)
+        },
+        distanceOp = { l -> l.sumBy { it.dist } },
+        waysOutOp = { l, t ->
+            paths[t]!!.keys
+                .filter { it != t }
+                .filter {
+                    !maze[it]!!.isUpperCase() || keys[maze[it]!!.toLowerCase()]!! in l.map(Path::e)
+                }
+        }
+    )
+
+    return bfsPathfinder.findShortest(start) { l, t -> (l.map { it.e } + t).containsAll(keys.values) }!!
+        .also { logWithTime(it) }
+        .sumBy { it.dist }
+}
+
+data class Path(val s: Location, val e: Location, val dist: Int) : Comparable<Path> {
+    override fun compareTo(other: Path): Int = compareValuesBy(this, other, { it.dist }, { it.s }, { it.e })
 }
 
 //var maxc = 1000

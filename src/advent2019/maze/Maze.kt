@@ -1,5 +1,7 @@
 package advent2019.maze
 
+import advent2019.pathfinder.BasicPathfinder
+
 data class Location(val y: Int, val x: Int) : Comparable<Location> {
     override fun toString() = "$y:$x"
     override fun compareTo(other: Location) = comparator.compare(this, other)
@@ -34,4 +36,11 @@ typealias Maze = List<String>
 operator fun Maze.get(what: Location) =
     if (what.y in this.indices && what.x in this[what.y].indices) this[what.y][what.x] else null
 
-
+fun Maze.dist(s: Location, e: Location): Int? {
+    return BasicPathfinder<Location> { l, t ->
+        Direction.values()
+            .map { t + it }
+            .filter { t1 -> t1 == e || this[t1] == '.' }
+    }.findShortest(s, e)
+        ?.let { it.size - 1 }
+}

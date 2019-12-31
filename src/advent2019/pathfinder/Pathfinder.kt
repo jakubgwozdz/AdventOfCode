@@ -50,14 +50,16 @@ open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
     val waysOutOp: (R, T) -> Iterable<T>
 ) : Pathfinder<T, R> {
 
-    override fun findShortest(start: T, end: T): R? {
+    override fun findShortest(start: T, end: T): R? = findShortest(start) { _, t -> t == end }
+
+    fun findShortest(start: T, endOp: (R, T) -> Boolean): R? {
         add(start, initialStateOp())
         while (toVisit.isNotEmpty()) {
             val (leaf, state) = pick()
             waysOutOp(state, leaf)
                 .also { if (logging) logWithTime("WaysOut for $leaf: $it") }
                 .forEach { next ->
-                    if (next == end) {
+                    if (endOp(state, next)) {
                         done(next, state)
                     } else {
                         add(next, state)
@@ -65,7 +67,7 @@ open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
                 }
 
         }
-        if (logging) logWithTime("best $start->$end is $currentBest")
+        if (logging) logWithTime("best from $start is $currentBest")
 
         return currentBest?.first
     }

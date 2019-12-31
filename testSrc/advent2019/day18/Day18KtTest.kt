@@ -1,9 +1,7 @@
 package advent2019.day18
 
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Timeout
 import java.time.Duration
 import kotlin.test.expect
 
@@ -44,8 +42,6 @@ internal class Day18KtTest {
     }
 
     @Test
-    @Timeout(1)
-    @Disabled
     fun part1Test4() {
         val input = """
             #################
