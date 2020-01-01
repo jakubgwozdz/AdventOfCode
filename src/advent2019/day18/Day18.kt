@@ -46,10 +46,10 @@ class Vault(val maze: Maze) {
         logWithTime("keys: $keys")
         logWithTime("doors: $doors")
 
-        val cache = keys.mapValues { mutableListOf<Pair<List<Char>, Int>>() }
+        val cache = keys.mapValues { mutableListOf<Pair<Set<Char>, Int>>() }
 
         return BFSPathfinder(
-            logging = true,
+//            logging = true,
             loggingFound = true,
             initialStateOp = { SearchState(emptyList()) },
             adderOp = { l, t -> l + t },
@@ -68,13 +68,14 @@ class Vault(val maze: Maze) {
     private fun worthChecking(
         pathsSoFar: SearchState<Char>,
         distance: Int,
-        cache: Map<Char, MutableList<Pair<List<Char>, Int>>>
+        cache: Map<Char, MutableList<Pair<Set<Char>, Int>>>
     ): Boolean {
         val stops = pathsSoFar.stops
         if (stops.isEmpty()) return true
         val last = stops.last()
 //        if (last == '@') return true
-        val ownedKeys = stops.sorted().distinct()
+        val ownedKeys = pathsSoFar.ownedKeys
+//        val ownedKeys = stops.sorted().distinct()
         val checkedPathsHere = cache[last] ?: error("unknown key '$last'")
         val hasBetterCandidate = checkedPathsHere.any { (keys, d) ->
             keys.containsAll(ownedKeys) && d <= distance
@@ -118,9 +119,13 @@ class Vault(val maze: Maze) {
             ?.let { Segment(prevStep, nextStep, it) }
     }
 
-    private fun directDistance(it: List<Char>): Int {
-        var s = it.first()
-        return it.fold(0) { a, c -> if (s == c) a else a + allPaths[s]!![c]!!.also { s = c } }
+    private val distanceCache = mutableMapOf<List<Char>, Int>()
+
+    private fun directDistance(stops: List<Char>): Int {
+        return distanceCache.computeIfAbsent(stops) {
+            var s = stops.first()
+            stops.fold(0) { a, c -> if (s == c) a else a + allPaths[s]!![c]!!.also { s = c } }
+        }
     }
 }
 
@@ -132,7 +137,7 @@ data class SearchState<T : Comparable<T>>(val list: List<Segment<T>>) {
 
     val stops = list.drop(1).map { p -> p.e }
 
-    val ownedKeys = stops.toSet()
+    val ownedKeys = stops.toSortedSet()
 
     val distance = list.sumBy { it.dist }
 }

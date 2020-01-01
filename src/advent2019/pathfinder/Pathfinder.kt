@@ -1,6 +1,7 @@
 package advent2019.pathfinder
 
 import advent2019.logWithTime
+import java.util.*
 
 /**
  * T - location
@@ -41,14 +42,14 @@ open class DFSPathfinder<T : Any, D : Any, R : Any>(
     }
 }
 
-open class BFSPathfinder<T:Any, R : Any, I : Comparable<I>>(
-    val logging: Boolean=false,
-    val loggingFound: Boolean=false,
+open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
+    val logging: Boolean = false,
+    val loggingFound: Boolean = false,
     val initialStateOp: () -> R,
     val adderOp: (R, T) -> R,
     val distanceOp: ((R) -> I),
     val meaningfulOp: (R, I) -> Boolean = { _, _ -> true },
-    val priority: Comparator<Triple<T,R,I>> = compareBy { it.third },
+    val priority: Comparator<Triple<T, R, I>> = compareBy { it.third },
     val waysOutOp: (R, T) -> Iterable<T>
 ) : Pathfinder<T, R> {
 
@@ -84,7 +85,8 @@ open class BFSPathfinder<T:Any, R : Any, I : Comparable<I>>(
         val c = currentBest
         if (c == null || c.second > distance) {
             val new = Triple(elem, nextState, distance)
-            toVisit.add(toVisit.indexOfLast { priority.compare(it,new) < 0 } + 1, new)
+            toVisit.offer(new)
+//            toVisit.add(toVisit.indexOfLast { priority.compare(it, new) < 0 } + 1, new)
             if (logging) logWithTime("adding $nextState with distance $distance")
         } else if (logging) logWithTime("skipping $nextState with distance $distance, we got better result already")
     }
@@ -100,15 +102,14 @@ open class BFSPathfinder<T:Any, R : Any, I : Comparable<I>>(
     }
 
     private fun pick(): Pair<T, R> {
-        val closest = toVisit.first()
-//        if (logging) logWithTime("removing $closest from $toVisit")
-        toVisit.remove(closest)
-//        if (logging) logWithTime("left to check later $toVisit")
+        val closest = toVisit.poll()
+//        if (logging) logWithTime("removing $closest, left $toVisit")
         return closest.first to closest.second
     }
 
     private var currentBest: Pair<R, I>? = null
-    private val toVisit: MutableList<Triple<T, R, I>> = mutableListOf()
+    private val toVisit = PriorityQueue<Triple<T, R, I>>(priority)
+//    private val toVisit: MutableList<Triple<T, R, I>> = mutableListOf()
 
 }
 
