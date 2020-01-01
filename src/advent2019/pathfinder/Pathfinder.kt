@@ -41,12 +41,14 @@ open class DFSPathfinder<T : Any, D : Any, R : Any>(
     }
 }
 
-open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
-    val logging: Boolean,
+open class BFSPathfinder<T:Any, R : Any, I : Comparable<I>>(
+    val logging: Boolean=false,
+    val loggingFound: Boolean=false,
     val initialStateOp: () -> R,
     val adderOp: (R, T) -> R,
     val distanceOp: ((R) -> I),
-//    val comparator: Comparator<R> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
+    val meaningfulOp: (R, I) -> Boolean = { _, _ -> true },
+    val priority: Comparator<Triple<T,R,I>> = compareBy { it.third },
     val waysOutOp: (R, T) -> Iterable<T>
 ) : Pathfinder<T, R> {
 
@@ -75,10 +77,13 @@ open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
     private fun add(elem: T, prevState: R) {
         val nextState = adderOp(prevState, elem)
         val distance = distanceOp(nextState)
+        if (!meaningfulOp(nextState, distance)) {
+            if (logging) logWithTime("skipping $nextState with distance $distance, it's not meaningful")
+        }
         val c = currentBest
         if (c == null || c.second > distance) {
             val new = Triple(elem, nextState, distance)
-            toVisit.add(toVisit.indexOfLast { it.third < distance } + 1, new)
+            toVisit.add(toVisit.indexOfLast { priority.compare(it,new) < 0 } + 1, new)
             if (logging) logWithTime("adding $nextState with distance $distance")
         } else if (logging) logWithTime("skipping $nextState with distance $distance, we got better result already")
     }
@@ -89,7 +94,7 @@ open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
         val c = currentBest
         if (c == null || c.second > distance) {
             currentBest = nextState to distance
-            if (logging) logWithTime("FOUND $nextState with distance $distance")
+            if (loggingFound) logWithTime("FOUND $nextState with distance $distance")
         } else if (logging) logWithTime("skipping found $nextState with distance $distance, we got better result already")
     }
 

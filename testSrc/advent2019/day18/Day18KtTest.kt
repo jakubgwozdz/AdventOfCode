@@ -54,7 +54,7 @@ internal class Day18KtTest {
             #l.F..d...h..C.m#
             #################
             """.trimIndent()
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10)) {
+        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(20)) {
             expect(136) { shortest(input.lines()) }
         }
     }
