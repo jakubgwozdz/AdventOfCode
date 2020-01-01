@@ -79,6 +79,7 @@ open class BFSPathfinder<T:Any, R : Any, I : Comparable<I>>(
         val distance = distanceOp(nextState)
         if (!meaningfulOp(nextState, distance)) {
             if (logging) logWithTime("skipping $nextState with distance $distance, it's not meaningful")
+            return
         }
         val c = currentBest
         if (c == null || c.second > distance) {
@@ -100,9 +101,9 @@ open class BFSPathfinder<T:Any, R : Any, I : Comparable<I>>(
 
     private fun pick(): Pair<T, R> {
         val closest = toVisit.first()
-        if (logging) logWithTime("removing $closest from $toVisit")
+//        if (logging) logWithTime("removing $closest from $toVisit")
         toVisit.remove(closest)
-        if (logging) logWithTime("left to check later $toVisit")
+//        if (logging) logWithTime("left to check later $toVisit")
         return closest.first to closest.second
     }
 

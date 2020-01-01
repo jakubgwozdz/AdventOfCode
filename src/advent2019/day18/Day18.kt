@@ -48,7 +48,8 @@ class Vault(val maze: Maze) {
 
         val cache = keys.mapValues { mutableListOf<Pair<List<Char>, Int>>() }
 
-        val bfsPathfinder = BFSPathfinder(
+        return BFSPathfinder(
+            logging = true,
             loggingFound = true,
             initialStateOp = { SearchState(emptyList()) },
             adderOp = { l, t -> l + t },
@@ -56,9 +57,7 @@ class Vault(val maze: Maze) {
             meaningfulOp = { l, d -> worthChecking(l, d, cache) },
             priority = compareByDescending { it.second.list.size },
             waysOutOp = this::waysOut
-        )
-
-        return bfsPathfinder.findShortest(Segment('@', '@', 0), this::found)!!
+        ).findShortest(Segment('@', '@', 0), this::found)!!
             .also { logWithTime(it) }
             .distance
     }
@@ -110,19 +109,18 @@ class Vault(val maze: Maze) {
         nextStep: Char,
         ownedKeys: Set<Char>
     ): Segment<Char>? {
-        return BasicPathfinder<Char>(distanceOp = { l ->
-            var s = prevStep
-            l.fold(0) { a, c -> if (s == c) a else a + allPaths[s]!![c]!!.also { s = c } }
-        }) { _, t ->
+        return BasicPathfinder<Char>(distanceOp = this::directDistance) { _, t ->
             allPaths[t]!!.keys
                 .filter { t1 -> t1 == nextStep || t1.toLowerCase() in ownedKeys }
         }
             .findShortest(prevStep, nextStep)
-            ?.let {
-                var s = prevStep
-                it.fold(0) { a, c -> if (s == c) a else a + allPaths[s]!![c]!!.also { s = c } }
-            }
+            ?.let(this::directDistance)
             ?.let { Segment(prevStep, nextStep, it) }
+    }
+
+    private fun directDistance(it: List<Char>): Int {
+        var s = it.first()
+        return it.fold(0) { a, c -> if (s == c) a else a + allPaths[s]!![c]!!.also { s = c } }
     }
 }
 
