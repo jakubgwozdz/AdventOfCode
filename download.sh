@@ -14,7 +14,8 @@ then
   PADDAY="0$PADDAY"
 fi
 
-YEAR=$(date +%Y)
+#YEAR=$(date +%Y)
+YEAR=2019
 COOKIE=$(cat .cookie)
 
 curl -H "Cookie: session=$COOKIE" "https://adventofcode.com/$YEAR/day/$DAY/input" -o "data/input-$YEAR-$PADDAY.txt"

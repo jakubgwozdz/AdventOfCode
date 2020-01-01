@@ -6,6 +6,7 @@ import advent2019.maze.Maze
 import advent2019.maze.yx
 import advent2019.pathfinder.BFSPathfinder
 import advent2019.readAllLines
+import kotlin.system.exitProcess
 
 
 fun shortest(input: List<String>) = Vault(Maze(input)).shortest()
@@ -23,8 +24,15 @@ class Vault(val maze: Maze) {
     val pois = keys + doors + ('@' to start)
     val allPaths = pois.map { s ->
         s.key to pois.mapNotNull { e ->
-            if (s == e) e.key to 0
-            else maze.dist(s.value, e.value)?.let { e.key to it }
+            when {
+                s == e && e.key == '@' -> e.key to 0
+                e.key == '@' -> null
+                s == e -> null
+                else -> {
+                    val dist = maze.dist(s.value, e.value) { c -> c == '.' || c == '@' || c in keys }
+                    if (dist != null) e.key to dist else null
+                }
+            }
         }.toMap()
     }.toMap()
 
@@ -32,6 +40,7 @@ class Vault(val maze: Maze) {
     fun shortest(): Int {
 
         maze.input.forEach { logWithTime(it) }
+        allPaths.forEach { logWithTime(it) }
 
         logWithTime("start: $start")
         logWithTime("keys: $keys")
@@ -44,22 +53,23 @@ class Vault(val maze: Maze) {
                 val last = l.lastOrNull()?.e ?: maze[start]!!
                 l + Path(last, t, allPaths[last]!![t]!!)
             },
-            distanceOp = { l -> distance(l) },
+            distanceOp = this::distance,
             waysOutOp = this::waysOut
         )
 
         return bfsPathfinder.findShortest('@') { l, t -> (l.map { it.e } + t).containsAll(keys.keys) }!!
             .also { logWithTime(it) }
-            .let { distance(it) / 100 }
+            .let { distance(it) }
     }
 
     private fun distance(pathsSoFar: List<Path<Char>>): Int {
+        if (--test < 0) exitProcess(-1)
         val pathDist = pathsSoFar.sumBy { it.dist }
-        val keysToGet = (keys.keys - pathsSoFar.map { it.e })
-        val result = pathDist * 100// + keysToGet.size
-        logWithTime("$pathsSoFar: $pathDist*100 + $keysToGet.size = $result")
-        return result
+        logWithTime("${pathsSoFar.map { it.e }}: $pathDist")
+        return pathDist
     }
+
+    var test = 2500
 
     private fun waysOut(
         pathsSoFar: List<Path<Char>>,
@@ -68,10 +78,14 @@ class Vault(val maze: Maze) {
         val visited = pathsSoFar.map { p -> p.e }
         val waysOut = allPaths[current]!!.keys
             .filter { it != current }
+            .filter { it.isUpperCase() || it !in visited } // no need to go for key if it is already grabbed
             .filter { !it.isUpperCase() || it.toLowerCase() in visited }
-            .filter { it !in visited || visited.lastIndexOf(it).let { lastIndex ->
-                visited.subList(lastIndex+1,visited.size).any { k->k.isLowerCase() && k !in visited.subList(0, lastIndex) }
-            } }
+            .filter {
+                it !in visited || visited.lastIndexOf(it).let { lastIndex ->
+                    visited.subList(lastIndex + 1, visited.size)
+                        .any { k -> k.isLowerCase() && k !in visited.subList(0, lastIndex) }
+                }
+            }
         return waysOut
     }
 }
@@ -80,7 +94,7 @@ data class Path<T : Comparable<T>>(val s: T, val e: T, val dist: Int) : Comparab
 
     override fun compareTo(other: Path<T>): Int = compareValuesBy(this, other, { it.dist }, { it.s }, { it.e })
 
-    override fun toString() = "->$e"
+    override fun toString() = "$s->$e:$dist"
 
 }
 
