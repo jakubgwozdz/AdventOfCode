@@ -49,11 +49,7 @@ class Vault(val maze: Maze) {
         val bfsPathfinder = BFSPathfinder<Path<Char>, List<Path<Char>>, Int>(
             logging = false,
             initialStateOp = { emptyList() },
-            adderOp = { l, t ->
-                l + t
-//                val last = l.lastOrNull()?.e ?: maze[start]!!
-//                l + Path(last, t, allPaths[last]!![t]!!)
-            },
+            adderOp = { l, t -> l + t },
             distanceOp = this::distance,
             waysOutOp = this::waysOut
         )
@@ -76,18 +72,11 @@ class Vault(val maze: Maze) {
         pathsSoFar: List<Path<Char>>,
         current: Path<Char>
     ): List<Path<Char>> {
-        val visited = pathsSoFar.map { p -> p.e }
-        val waysOut = allPaths[current.e]!!.keys
-            .filter { it != current.e }
-            .filter { it.isUpperCase() || it !in visited } // no need to go for key if it is already grabbed
-            .filter { !it.isUpperCase() || it.toLowerCase() in visited }
-            .filter {
-                it !in visited || visited.lastIndexOf(it).let { lastIndex ->
-                    visited.subList(lastIndex + 1, visited.size)
-                        .any { k -> k.isLowerCase() && k !in visited.subList(0, lastIndex) }
-                }
-            }
-            .map { Path(current.e, it, allPaths[current.e]!![it]!!) }
+        val visited = pathsSoFar.map { p -> p.e }.filter { it in keys.keys }
+        val waysOut = keys
+            .filter { it.key !in visited }
+            .map { it.key to maze.dist(pois[current.e]!!, it.value) { c -> c == '.' || c == '@' || (c!=null && c.toLowerCase() in visited )} }
+            .mapNotNull { (e,d)->if (d!=null) Path(current.e,e, d) else null }
         return waysOut
     }
 }
