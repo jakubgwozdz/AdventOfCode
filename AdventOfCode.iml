@@ -56,5 +56,6 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" scope="TEST" name="org.junit.jupiter:junit-jupiter:5.5.2" level="project" />
   </component>
 </module>

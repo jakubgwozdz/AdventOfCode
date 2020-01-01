@@ -77,9 +77,8 @@ open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
         val distance = distanceOp(nextState)
         val c = currentBest
         if (c == null || c.second > distance) {
-            toVisit.add(
-                Triple(elem, nextState, distance)
-            )
+            val new = Triple(elem, nextState, distance)
+            toVisit.add(toVisit.indexOfLast { it.third < distance } + 1, new)
             if (logging) logWithTime("adding $nextState with distance $distance")
         } else if (logging) logWithTime("skipping $nextState with distance $distance, we got better result already")
     }
@@ -103,7 +102,7 @@ open class BFSPathfinder<T : Comparable<T>, R : Any, I : Comparable<I>>(
     }
 
     private var currentBest: Pair<R, I>? = null
-    private val toVisit: MutableCollection<Triple<T, R, I>> = sortedSetOf(compareBy({ it.third }, { it.first }))
+    private val toVisit: MutableList<Triple<T, R, I>> = mutableListOf()
 
 }
 

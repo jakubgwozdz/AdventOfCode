@@ -1,9 +1,11 @@
 package advent2019.day11
 
 import advent2019.readAllLines
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.jupiter.api.Test
 import kotlin.test.expect
 
+@ExperimentalCoroutinesApi
 internal class Day11KtTest {
 
     @Test

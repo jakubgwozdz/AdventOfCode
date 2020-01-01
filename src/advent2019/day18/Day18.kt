@@ -50,11 +50,15 @@ class Vault(val maze: Maze) {
 
         return bfsPathfinder.findShortest('@') { l, t -> (l.map { it.e } + t).containsAll(keys.keys) }!!
             .also { logWithTime(it) }
-            .let { distance(it) }
+            .let { distance(it) / 100 }
     }
 
-    private fun distance(l: List<Path<Char>>): Int {
-        return l.sumBy { it.dist } * 100 + keys.size - l.map { it.e }.distinct().count { it.isLowerCase() }
+    private fun distance(pathsSoFar: List<Path<Char>>): Int {
+        val pathDist = pathsSoFar.sumBy { it.dist }
+        val keysToGet = (keys.keys - pathsSoFar.map { it.e })
+        val result = pathDist * 100// + keysToGet.size
+        logWithTime("$pathsSoFar: $pathDist*100 + $keysToGet.size = $result")
+        return result
     }
 
     private fun waysOut(
@@ -65,7 +69,9 @@ class Vault(val maze: Maze) {
         val waysOut = allPaths[current]!!.keys
             .filter { it != current }
             .filter { !it.isUpperCase() || it.toLowerCase() in visited }
-            .filter { visited.size < 2 || visited[visited.size - 1].isLowerCase() || visited[visited.size - 2] != it }
+            .filter { it !in visited || visited.lastIndexOf(it).let { lastIndex ->
+                visited.subList(lastIndex+1,visited.size).any { k->k.isLowerCase() && k !in visited.subList(0, lastIndex) }
+            } }
         return waysOut
     }
 }
@@ -74,7 +80,7 @@ data class Path<T : Comparable<T>>(val s: T, val e: T, val dist: Int) : Comparab
 
     override fun compareTo(other: Path<T>): Int = compareValuesBy(this, other, { it.dist }, { it.s }, { it.e })
 
-    override fun toString() = "($s->$e, dist=$dist)"
+    override fun toString() = "->$e"
 
 }
 
