@@ -46,18 +46,19 @@ class Vault(val maze: Maze) {
         logWithTime("keys: $keys")
         logWithTime("doors: $doors")
 
-        val bfsPathfinder = BFSPathfinder<Char, List<Path<Char>>, Int>(
+        val bfsPathfinder = BFSPathfinder<Path<Char>, List<Path<Char>>, Int>(
             logging = false,
             initialStateOp = { emptyList() },
             adderOp = { l, t ->
-                val last = l.lastOrNull()?.e ?: maze[start]!!
-                l + Path(last, t, allPaths[last]!![t]!!)
+                l + t
+//                val last = l.lastOrNull()?.e ?: maze[start]!!
+//                l + Path(last, t, allPaths[last]!![t]!!)
             },
             distanceOp = this::distance,
             waysOutOp = this::waysOut
         )
 
-        return bfsPathfinder.findShortest('@') { l, t -> (l.map { it.e } + t).containsAll(keys.keys) }!!
+        return bfsPathfinder.findShortest(Path('@', '@', 0)) { l, t -> (l.map { it.e } + t.e).containsAll(keys.keys) }!!
             .also { logWithTime(it) }
             .let { distance(it) }
     }
@@ -73,11 +74,11 @@ class Vault(val maze: Maze) {
 
     private fun waysOut(
         pathsSoFar: List<Path<Char>>,
-        current: Char
-    ): List<Char> {
+        current: Path<Char>
+    ): List<Path<Char>> {
         val visited = pathsSoFar.map { p -> p.e }
-        val waysOut = allPaths[current]!!.keys
-            .filter { it != current }
+        val waysOut = allPaths[current.e]!!.keys
+            .filter { it != current.e }
             .filter { it.isUpperCase() || it !in visited } // no need to go for key if it is already grabbed
             .filter { !it.isUpperCase() || it.toLowerCase() in visited }
             .filter {
@@ -86,6 +87,7 @@ class Vault(val maze: Maze) {
                         .any { k -> k.isLowerCase() && k !in visited.subList(0, lastIndex) }
                 }
             }
+            .map { Path(current.e, it, allPaths[current.e]!![it]!!) }
         return waysOut
     }
 }
