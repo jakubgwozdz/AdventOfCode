@@ -5,6 +5,7 @@ import advent2019.maze.Location
 import advent2019.maze.Maze
 import advent2019.maze.yx
 import advent2019.pathfinder.BFSPathfinder
+import advent2019.pathfinder.BasicPathfinder
 import advent2019.readAllLines
 
 
@@ -28,7 +29,7 @@ class Vault(val maze: Maze) {
                 e.key == '@' -> null
                 s == e -> null
                 else -> {
-                    val dist = maze.dist(s.value, e.value) { c -> c == '.' || c == '@' || c in keys }
+                    val dist = maze.dist(s.value, e.value) { c -> c == '.' || c == '@' /*|| c in keys*/ }
                     if (dist != null) e.key to dist else null
                 }
             }
@@ -47,29 +48,23 @@ class Vault(val maze: Maze) {
 
         val cache = keys.mapValues { mutableListOf<Pair<List<Char>, Int>>() }
 
-        val bfsPathfinder = BFSPathfinder<Path<Char>, SearchState<Char>, Int>(
+        val bfsPathfinder = BFSPathfinder(
             loggingFound = true,
             initialStateOp = { SearchState(emptyList()) },
             adderOp = { l, t -> l + t },
-            distanceOp = this::distance,
+            distanceOp = SearchState<Char>::distance,
             meaningfulOp = { l, d -> worthChecking(l, d, cache) },
-            priority = (compareByDescending { it.second.list.size }),
+            priority = compareByDescending { it.second.list.size },
             waysOutOp = this::waysOut
         )
 
-        return bfsPathfinder.findShortest(Path('@', '@', 0), this::found)!!
+        return bfsPathfinder.findShortest(Segment('@', '@', 0), this::found)!!
             .also { logWithTime(it) }
-            .let { distance(it) }
+            .distance
     }
 
-    private fun found(pathsSoFar: SearchState<Char>, next: Path<Char>): Boolean {
-        val all = (pathsSoFar.ownedKeys + next.e).containsAll(keys.keys)
-//        if (all) {
-//            val stops = pathsSoFar.map { it.e }
-//            println("$stops: ${distance(pathsSoFar)}")
-//        }
-        return all
-    }
+    private fun found(pathsSoFar: SearchState<Char>, next: Segment<Char>): Boolean =
+        (pathsSoFar.ownedKeys + next.e).containsAll(keys.keys)
 
     private fun worthChecking(
         pathsSoFar: SearchState<Char>,
@@ -77,8 +72,9 @@ class Vault(val maze: Maze) {
         cache: Map<Char, MutableList<Pair<List<Char>, Int>>>
     ): Boolean {
         val stops = pathsSoFar.stops
+        if (stops.isEmpty()) return true
         val last = stops.last()
-        if (last == '@') return true
+//        if (last == '@') return true
         val ownedKeys = stops.sorted().distinct()
         val checkedPathsHere = cache[last] ?: error("unknown key '$last'")
         val hasBetterCandidate = checkedPathsHere.any { (keys, d) ->
@@ -97,47 +93,46 @@ class Vault(val maze: Maze) {
 
     }
 
-    private fun distance(pathsSoFar: SearchState<Char>): Int {
-//        if (--test < 0) exitProcess(-1)
-        val distance = pathsSoFar.distance
-//        val ownedKeys = pathsSoFar.map { it.e }.sorted().distinct()
-//        val keysToGrab = keys - ownedKeys
-//        val stops = pathsSoFar.map { it.e }.toString()
-//        if (keysToGrab.size<1)
-//            println("$stops: $distance, keysToGrab:$keysToGrab")
-
-//        if ("[@, a, f, b, j, g, n, h, d, l, o, e, p, c, i, k, m".startsWith(s.dropLast(1)))
-//        println("$s: $pathDist")
-
-        return distance //+ keysToGrab.size * 1000
-    }
-
     var test = 2500
 
     private fun waysOut(
         pathsSoFar: SearchState<Char>,
-        current: Path<Char>
-    ): List<Path<Char>> {
-        val visited = pathsSoFar.ownedKeys.intersect(keys.keys)
-        val waysOut = keys
-            .filter { it.key !in visited }
-            .map {
-                it.key to maze.dist(
-                    pois[current.e]!!,
-                    it.value
-                ) { c -> c == '.' || c == '@' || (c != null && c.toLowerCase() in visited) }
+        current: Segment<Char>
+    ): List<Segment<Char>> {
+        val ownedKeys = pathsSoFar.ownedKeys
+        return keys.keys
+            .filter { it !in ownedKeys }
+            .mapNotNull { distanceBetweenPoints(current.e, it, ownedKeys) }
+    }
+
+    private fun distanceBetweenPoints(
+        prevStep: Char,
+        nextStep: Char,
+        ownedKeys: Set<Char>
+    ): Segment<Char>? {
+        return BasicPathfinder<Char>(distanceOp = { l ->
+            var s = prevStep
+            l.fold(0) { a, c -> if (s == c) a else a + allPaths[s]!![c]!!.also { s = c } }
+        }) { _, t ->
+            allPaths[t]!!.keys
+                .filter { t1 -> t1 == nextStep || t1.toLowerCase() in ownedKeys }
+        }
+            .findShortest(prevStep, nextStep)
+            ?.let {
+                var s = prevStep
+                it.fold(0) { a, c -> if (s == c) a else a + allPaths[s]!![c]!!.also { s = c } }
             }
-            .mapNotNull { (e, d) -> if (d != null) Path(current.e, e, d) else null }
-        return waysOut
+            ?.let { Segment(prevStep, nextStep, it) }
     }
 }
 
-data class SearchState<T : Comparable<T>>(val list: List<Path<T>>) {
-    operator fun plus(t: Path<T>): SearchState<T> {
-        return SearchState(list + t)
-    }
+data class SearchState<T : Comparable<T>>(val list: List<Segment<T>>) {
 
-    val stops = list.map { p -> p.e }
+    operator fun plus(t: Segment<T>): SearchState<T> = SearchState(list + t)
+
+    override fun toString(): String = "$stops"
+
+    val stops = list.drop(1).map { p -> p.e }
 
     val ownedKeys = stops.toSet()
 
@@ -145,9 +140,9 @@ data class SearchState<T : Comparable<T>>(val list: List<Path<T>>) {
 }
 
 
-data class Path<T : Comparable<T>>(val s: T, val e: T, val dist: Int) : Comparable<Path<T>> {
+data class Segment<T : Comparable<T>>(val s: T, val e: T, val dist: Int) : Comparable<Segment<T>> {
 
-    override fun compareTo(other: Path<T>): Int = compareValuesBy(this, other, { it.dist }, { it.s }, { it.e })
+    override fun compareTo(other: Segment<T>): Int = compareValuesBy(this, other, { it.dist }, { it.s }, { it.e })
 
     override fun toString() = "$s->$e:$dist"
 
