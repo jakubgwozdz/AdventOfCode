@@ -76,7 +76,7 @@ class Vault(val maze: Maze) {
         val ownedKeys = pathsSoFar.ownedKeys
         val checkedPathsHere = cache[last] ?: error("unknown key '$last'")
         val hasBetterCandidate = checkedPathsHere.any { (keys, d) ->
-            keys.containsAll(ownedKeys) && d <= distance
+            keys.size >= ownedKeys.size && keys.containsAll(ownedKeys) && d <= distance
         }
         return when {
             hasBetterCandidate -> {
