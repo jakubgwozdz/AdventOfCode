@@ -97,7 +97,7 @@ internal class Day16KtTest {
 
     @Test
     fun testPart2Input() {
-        expect("73127523") {
+        expect("80284420") {
             fftRepeat(readAllLines("data/input-2019-16.txt").single(), 10000, 100, 5973857, 8)
         }
     }

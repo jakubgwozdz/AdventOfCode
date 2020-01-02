@@ -42,14 +42,14 @@ fun fft(input: String, iterations: Int, offset: Int = 0, messageLen: Int = input
 
 fun fftRepeat(input: String, repeats: Int, iterations: Int, offset: Int, messageLen: Int): String {
     if (offset < input.length * repeats / 2) error("shortcut won't work")
-    var secondHalf = (offset until input.length * repeats).map { it to (input[it % input.length] - '0') }.toMap()
+    val secondHalf = (offset until input.length * repeats)
+        .map { it to (input[it % input.length] - '0') }
+        .toMap().toMutableMap() // IntArray would be much faster, but this way it's easier to understand
     repeat(iterations) {
-        var a = 0
-        secondHalf = (input.length * repeats - 1 downTo offset).map { i ->
-            i to (a + secondHalf[i]!!)
-                .also { a = it }
+        (input.length * repeats - 1 downTo offset).forEach { i ->
+            secondHalf[i] = ((secondHalf[i+1]?:0) + secondHalf[i]!!)
                 .let { if (it < 0) -it else it } % 10
-        }.toMap()
+        }
     }
     return (offset until offset + messageLen).map { secondHalf[it]!! }.joinToString("")
 }
