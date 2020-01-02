@@ -61,13 +61,13 @@ class Vault(val maze: Maze) {
             meaningfulOp = { l, d -> worthChecking(l, d, cache) },
             priority = compareBy { it.first.distance },
             waysOutOp = this::waysOut
-        ).findShortest(SearchState<Char>(emptyList())+start1, this::found)!!
+        )
+            .findShortest(SearchState<Char>(emptyList())+start1) { pathsSoFar ->
+                (pathsSoFar.ownedKeys).containsAll(this.keys.keys)
+            }!!
             .also { logWithTime(it) }
             .distance
     }
-
-    private fun found(pathsSoFar: SearchState<Char>, next: Segment<Char>): Boolean =
-        (pathsSoFar.ownedKeys + next.e).containsAll(keys.keys)
 
     private fun worthChecking(
         pathsSoFar: SearchState<Char>,
@@ -116,7 +116,7 @@ class Vault(val maze: Maze) {
                     allPaths[l.last()]!!.keys
                         .filter { t1 -> t1 == e || t1.toLowerCase() in ownedKeys }
                 }
-                    .findShortest(listOf(s), e)
+                    .findShortest(listOf(s)) { l -> l.lastOrNull() == e }
                     ?.let(this@Vault::directDistance)
                     ?: -1
             }

@@ -86,7 +86,8 @@ class Donut(val maze: Maze) {
             }
         )
 
-        val shortest = pathfinder.findShortest(listOf(start), end)
+        val shortest = pathfinder
+            .findShortest(listOf(start)) { l -> l.lastOrNull() == end }
             ?.let { connectionsBetweenPortals(it) }
             .also { if (logging) logWithTime("AA->ZZ: found $it") }
         return shortest?.toList() ?: error("Not found")
@@ -134,7 +135,8 @@ class Donut(val maze: Maze) {
             }
         )
 
-        val shortest = pathfinder.findShortest(listOf(start), end)
+        val shortest = pathfinder
+            .findShortest(listOf(start)) { l -> l.lastOrNull() == end }
             ?.let { connectionsBetweenPortalsOnLevel(it) }
             .also { if (logging) logWithTime("AA->ZZ: found $it") }
         return shortest?.toList() ?: error("Not found")
@@ -216,7 +218,8 @@ private fun findConnections(maze: Maze, portals: Set<Portal>, logging: Boolean =
             }
 
             val shortestPath = if (start.code == end.code) listOf(start, end)
-            else pathfinder.findShortest(listOf(start.location), end.location)
+            else pathfinder
+                .findShortest(listOf(start.location)) { l -> l.lastOrNull() == end.location }
 
             shortestPath?.let {
                 if (logging) logWithTime("path $start(${start.location})->$end(${end.location}) is $it")

@@ -9,7 +9,7 @@ import java.util.*
  * R - state
  */
 interface Pathfinder<T : Any, R : Any> {
-    fun findShortest(startState: R, end: T): R?
+    fun findShortest(startState: R, endOp: (R) -> Boolean): R?
 }
 
 open class DFSPathfinder<T : Any, D : Any, R : Any>(
@@ -53,19 +53,20 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
 //) {
 ) : Pathfinder<T, R> {
 
-   override fun findShortest(startState: R, end: T): R? = findShortest(startState) { _, t -> t == end }
+//   override fun findShortest(startState: R, end: T): R? = findShortest(startState) { _, t -> t == end }
 
-    fun findShortest(startState: R, endOp: (R, T) -> Boolean): R? {
+    override fun findShortest(startState: R, endOp: (R) -> Boolean): R? {
         add(startState)
         while (toVisit.isNotEmpty()) {
             val state = pick()
             waysOutOp(state)
                 .also { if (logging) logWithTime("WaysOut for $state: $it") }
-                .forEach { next ->
-                    if (endOp(state, next)) {
-                        done(adderOp(state, next))
+                .map { next -> adderOp(state, next) }
+                .forEach { r ->
+                    if (endOp(r)) {
+                        done(r)
                     } else {
-                        add(adderOp(state, next))
+                        add(r)
                     }
                 }
 

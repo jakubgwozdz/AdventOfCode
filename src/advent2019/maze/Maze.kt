@@ -45,7 +45,8 @@ data class Maze(val input: List<String>) {
             Direction.values()
                 .map { l.last() + it }
                 .filter { t1 -> t1 == e || testOp(this[t1]) }
-        }.findShortest(listOf(s), e)
+        }
+            .findShortest(listOf(s)) { l -> l.lastOrNull() == e }
             ?.let { it.size - 1 }
     }
 
