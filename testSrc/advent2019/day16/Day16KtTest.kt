@@ -10,7 +10,7 @@ import kotlin.test.expect
 internal class Day16KtTest {
 
     @Test
-    internal fun testPhase() {
+    fun testPhase() {
         expect("48226158") { fftPhase("12345678") }
         expect("34040438") { fftPhase("48226158") }
         expect("03415518") { fftPhase("34040438") }
@@ -18,25 +18,24 @@ internal class Day16KtTest {
     }
 
     private fun fftPhase(input: String): String {
-        return fftPhase(StringDigitsProvider(input))
-            .let { provider -> buildString { repeat(provider.length) { append(provider[it + 1]) } } }
+        return fftPhase(input.toDigits()).asString()
     }
 
     @Test
-    internal fun testFft() {
+    fun testFft() {
         expect("48226158") { fft("12345678", 1) }
         expect("01029498") { fft("12345678", 4) }
     }
 
     @Test
-    internal fun testPart1() {
-        expect("24176176") { fft("80871224585914546619083218645595", 100).take(8) }
-        expect("73745418") { fft("19617804207202209144916044189917", 100).take(8) }
-        expect("52432133") { fft("69317163492948606335995924319873", 100).take(8) }
+    fun testPart1() {
+        expect("24176176") { fft("80871224585914546619083218645595", 100,0,8) }
+        expect("73745418") { fft("19617804207202209144916044189917", 100,0,8) }
+        expect("52432133") { fft("69317163492948606335995924319873", 100,0,8) }
     }
 
     @Test
-    internal fun testPart2a() {
+    fun testPart2a() {
         Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10)) {
             expect("24176176") { fftRepeat("80871224585914546619083218645595", 1, 100, 0, 8) }
         }
@@ -50,7 +49,7 @@ internal class Day16KtTest {
 
     @Test
     @Disabled
-    internal fun testPart2b() {
+    fun testPart2b() {
         Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10)) {
             expect("84462026") { fftRepeat("03036732577212944063491565474664", 10000, 100, 303673, 8) }
         }
@@ -63,7 +62,7 @@ internal class Day16KtTest {
     }
 
     @Test
-    internal fun testRepeated() {
+    fun testRepeated() {
         expect("34389886592132718868384101444361") {
             fftRepeat("69317163492948616931716349294861", 1, 10, 0, 32)
         }
@@ -73,7 +72,7 @@ internal class Day16KtTest {
     }
 
     @Test
-    internal fun testRepeated2() {
+    fun testRepeated2() {
         expect("542132465648252") {
             fftRepeat("432524325243252", 1, 10, 0, 15)
         }
@@ -83,10 +82,13 @@ internal class Day16KtTest {
     }
 
     @Test
-    internal fun testRepeated3() {
+    fun testRepeated3a() {
         expect("403893683670591085908457663043256980782088917468785168225711620724036") {
             fftRepeat("432528237465328745290364325282374653287452903643252823746532874529036", 1, 10, 0, 69)
         }
+    }
+    @Test
+    fun testRepeated3b() {
         expect("403893683670591085908457663043256980782088917468785168225711620724036") {
             fftRepeat("43252823746532874529036", 3, 10, 0, 69)
         }
@@ -94,14 +96,14 @@ internal class Day16KtTest {
 
     @Test
     @Disabled
-    internal fun testRepeated4() {
+    fun testRepeated4() {
         expect("11111111") {
             fftRepeat("1111", 10000, 100, 0, 100)
         }
     }
 
     @Test
-    internal fun testPart1Input() {
+    fun testPart1Input() {
         expect("73127523") {
             fft(readAllLines("data/input-2019-16.txt").single(), 100).take(8)
         }
