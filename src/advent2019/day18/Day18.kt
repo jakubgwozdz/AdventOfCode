@@ -55,7 +55,7 @@ class Vault(val maze: Maze) {
             adderOp = { l, t -> l + t },
             distanceOp = SearchState<Char>::distance,
             meaningfulOp = { l, d -> worthChecking(l, d, cache) },
-            priority = compareByDescending { it.second.list.size },
+            priority = compareBy { it.second.distance },
             waysOutOp = this::waysOut
         ).findShortest(Segment('@', '@', 0), this::found)!!
             .also { logWithTime(it) }
@@ -73,16 +73,13 @@ class Vault(val maze: Maze) {
         val stops = pathsSoFar.stops
         if (stops.isEmpty()) return true
         val last = stops.last()
-//        if (last == '@') return true
         val ownedKeys = pathsSoFar.ownedKeys
-//        val ownedKeys = stops.sorted().distinct()
         val checkedPathsHere = cache[last] ?: error("unknown key '$last'")
         val hasBetterCandidate = checkedPathsHere.any { (keys, d) ->
             keys.containsAll(ownedKeys) && d <= distance
         }
         return when {
             hasBetterCandidate -> {
-//                logWithTime("has better candidate for $visited")
                 false
             }
             else -> {
@@ -105,19 +102,32 @@ class Vault(val maze: Maze) {
             .mapNotNull { distanceBetweenPoints(current.e, it, ownedKeys) }
     }
 
+    inner class CalculatedSegments {
+        val cache: MutableMap<Triple<Char, Char, Set<Char>>, Int> = mutableMapOf()
+
+        fun compute(s: Char, e: Char, ownedKeys: Set<Char>): Segment<Char>? = when {
+            s == e -> Segment(s, e, 0)
+            s > e -> compute(e, s, ownedKeys)?.let { Segment(it.e, it.s, it.dist) }
+            else -> cache.computeIfAbsent(Triple(s, e, ownedKeys)) {
+                BasicPathfinder<Char>(distanceOp = this@Vault::directDistance) { _, t ->
+                    allPaths[t]!!.keys
+                        .filter { t1 -> t1 == e || t1.toLowerCase() in ownedKeys }
+                }
+                    .findShortest(s, e)
+                    ?.let(this@Vault::directDistance)
+                    ?: -1
+            }
+                .let { if (it >= 0) Segment(s, e, it) else null }
+        }
+    }
+
+    val calculatedSegments = CalculatedSegments()
+
     private fun distanceBetweenPoints(
         prevStep: Char,
         nextStep: Char,
         ownedKeys: Set<Char>
-    ): Segment<Char>? {
-        return BasicPathfinder<Char>(distanceOp = this::directDistance) { _, t ->
-            allPaths[t]!!.keys
-                .filter { t1 -> t1 == nextStep || t1.toLowerCase() in ownedKeys }
-        }
-            .findShortest(prevStep, nextStep)
-            ?.let(this::directDistance)
-            ?.let { Segment(prevStep, nextStep, it) }
-    }
+    ) = calculatedSegments.compute(prevStep, nextStep, ownedKeys)
 
     private val distanceCache = mutableMapOf<List<Char>, Int>()
 
