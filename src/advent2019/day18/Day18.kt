@@ -17,16 +17,20 @@ class Vault(val maze: Maze) {
         maze.mapIndexed { y: Int, s: String -> s.mapIndexed { x: Int, c: Char -> (y yx x) to c } }
             .flatten()
             .toMap()
-    val start = mazeAsMap.entries.single { (l, c) -> c == '@' }.key
-    val keys = (mazeAsMap.filterValues { it.isLowerCase() }).map { (l, c) -> c to l }.toMap()
+    val start = mazeAsMap.filterValues { it == '@' }.map { (l, c) -> c to l }
+        .fold(emptyList<Pair<Char, Location>>()) { a, i ->
+            a + ((a.lastOrNull()?.let { it.first + 1 } ?: '0') to i.second)
+        }
+        .toMap()
+    val keys = mazeAsMap.filterValues { it.isLowerCase() }.map { (l, c) -> c to l }.toMap()
     val doors = mazeAsMap.filterValues { it.isUpperCase() }.map { (l, c) -> c to l }.toMap()
 
-    val pois = keys + doors + ('@' to start)
+    val pois = keys + doors + start
     val allPaths = pois.map { s ->
         s.key to pois.mapNotNull { e ->
             when {
-                s == e && e.key == '@' -> e.key to 0
-                e.key == '@' -> null
+                s == e && e.key.isDigit() -> e.key to 0
+                e.key.isDigit() -> null
                 s == e -> null
                 else -> {
                     val dist = maze.dist(s.value, e.value) { c -> c == '.' || c == '@' /*|| c in keys*/ }
@@ -55,9 +59,9 @@ class Vault(val maze: Maze) {
             adderOp = { l, t -> l + t },
             distanceOp = SearchState<Char>::distance,
             meaningfulOp = { l, d -> worthChecking(l, d, cache) },
-            priority = compareBy { it.second.distance },
+            priority = compareBy { it.first.distance },
             waysOutOp = this::waysOut
-        ).findShortest(Segment('@', '@', 0), this::found)!!
+        ).findShortest(Segment('0', '0', 0), this::found)!!
             .also { logWithTime(it) }
             .distance
     }
@@ -93,13 +97,12 @@ class Vault(val maze: Maze) {
     var test = 2500
 
     private fun waysOut(
-        pathsSoFar: SearchState<Char>,
-        current: Segment<Char>
+        pathsSoFar: SearchState<Char>
     ): List<Segment<Char>> {
         val ownedKeys = pathsSoFar.ownedKeys
         return keys.keys
             .filter { it !in ownedKeys }
-            .mapNotNull { distanceBetweenPoints(current.e, it, ownedKeys) }
+            .mapNotNull { distanceBetweenPoints(pathsSoFar.list.last().e, it, ownedKeys) }
     }
 
     inner class CalculatedSegments {
@@ -109,8 +112,8 @@ class Vault(val maze: Maze) {
             s == e -> Segment(s, e, 0)
             s > e -> compute(e, s, ownedKeys)?.let { Segment(it.e, it.s, it.dist) }
             else -> cache.computeIfAbsent(Triple(s, e, ownedKeys)) {
-                BasicPathfinder<Char>(distanceOp = this@Vault::directDistance) { _, t ->
-                    allPaths[t]!!.keys
+                BasicPathfinder<Char>(distanceOp = this@Vault::directDistance) { l ->
+                    allPaths[l.last()]!!.keys
                         .filter { t1 -> t1 == e || t1.toLowerCase() in ownedKeys }
                 }
                     .findShortest(s, e)
@@ -165,4 +168,21 @@ fun main() {
     val input = readAllLines("data/input-2019-18.txt")
     shortest(input)
         .also { logWithTime("part 1: $it") }
+}
+
+fun split(input: List<String>): List<String> {
+    val start = input.mapIndexed { y: Int, s: String ->
+        s.mapIndexed { x: Int, c: Char -> (y yx x) to c }
+    }
+        .flatten()
+        .toMap()
+        .filterValues { it == '@' }
+        .keys
+        .single()
+
+    return input.subList(0, start.y - 1) +
+            (input[start.y - 1].substring(0, start.x - 1) + "@#@" + input[start.y - 1].substring(start.x + 2)) +
+            (input[start.y + 0].substring(0, start.x - 1) + "###" + input[start.y + 0].substring(start.x + 2)) +
+            (input[start.y + 1].substring(0, start.x - 1) + "@#@" + input[start.y + 1].substring(start.x + 2)) +
+            input.subList(start.y + 2, input.size)
 }

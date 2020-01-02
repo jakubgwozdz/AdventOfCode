@@ -49,8 +49,8 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
     val adderOp: (R, T) -> R,
     val distanceOp: ((R) -> I),
     val meaningfulOp: (R, I) -> Boolean = { _, _ -> true },
-    val priority: Comparator<Triple<T, R, I>> = compareBy { it.third },
-    val waysOutOp: (R, T) -> Iterable<T>
+    val priority: Comparator<Pair<R, I>> = compareBy { it.second },
+    val waysOutOp: (R) -> Iterable<T>
 ) : Pathfinder<T, R> {
 
     override fun findShortest(start: T, end: T): R? = findShortest(start) { _, t -> t == end }
@@ -58,9 +58,9 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
     fun findShortest(start: T, endOp: (R, T) -> Boolean): R? {
         add(start, initialStateOp())
         while (toVisit.isNotEmpty()) {
-            val (leaf, state) = pick()
-            waysOutOp(state, leaf)
-                .also { if (logging) logWithTime("WaysOut for $leaf: $it") }
+            val state = pick()
+            waysOutOp(state)
+                .also { if (logging) logWithTime("WaysOut for $state: $it") }
                 .forEach { next ->
                     if (endOp(state, next)) {
                         done(next, state)
@@ -84,7 +84,7 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
         }
         val c = currentBest
         if (c == null || c.second > distance) {
-            val new = Triple(elem, nextState, distance)
+            val new = nextState to distance
             toVisit.offer(new)
 //            toVisit.add(toVisit.indexOfLast { priority.compare(it, new) < 0 } + 1, new)
             if (logging) logWithTime("adding $nextState with distance $distance")
@@ -101,14 +101,14 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
         } else if (logging) logWithTime("skipping found $nextState with distance $distance, we got better result already")
     }
 
-    private fun pick(): Pair<T, R> {
-        val closest = toVisit.poll()
+    private fun pick(): R {
+        val (r,i) = toVisit.poll()
 //        if (logging) logWithTime("removing $closest, left $toVisit")
-        return closest.first to closest.second
+        return r
     }
 
     private var currentBest: Pair<R, I>? = null
-    private val toVisit = PriorityQueue<Triple<T, R, I>>(priority)
+    private val toVisit = PriorityQueue<Pair<R, I>>(priority)
 //    private val toVisit: MutableList<Triple<T, R, I>> = mutableListOf()
 
 }
@@ -118,13 +118,13 @@ class BasicPathfinder<T : Comparable<T>>(
     initialStateOp: () -> List<T> = { emptyList() },
     adderOp: (List<T>, T) -> List<T> = { l, t -> l + t },
     distanceOp: ((List<T>) -> Int) = { l -> l.size },
-    waysOutOp: (List<T>, T) -> Iterable<T>
+    waysOutOp: (List<T>) -> Iterable<T>
 ) : BFSPathfinder<T, List<T>, Int>(
     logging = logging,
     initialStateOp = initialStateOp,
     adderOp = adderOp,
     distanceOp = distanceOp,
-    waysOutOp = { l, t -> waysOutOp(l, t).filter { it !in l } }
+    waysOutOp = { l -> waysOutOp(l).filter { it !in l } }
 )
 
 

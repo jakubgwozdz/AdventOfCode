@@ -81,8 +81,8 @@ class Donut(val maze: Maze) {
                     .also { if (logging) logWithTime("Calculating $it") }
                     .sumBy(Connection::distance)
             },
-            waysOutOp = { l, p ->
-                regularLeafs(l, p)
+            waysOutOp = { l ->
+                regularLeafs(l)
             }
         )
 
@@ -92,21 +92,21 @@ class Donut(val maze: Maze) {
         return shortest?.toList() ?: error("Not found")
     }
 
-    fun regularLeafs(l: List<Portal>, p: Portal): List<Portal> = (connectionsCache[p] ?: emptyMap())
+    fun regularLeafs(l: List<Portal>): List<Portal> = (connectionsCache[l.last()] ?: emptyMap())
         .values
         .asSequence()
         .map { it.portal2 }
         .filter { testEverySecondIsPortal(l, it) { p -> p } }
         .toList()
 
-    fun recursiveLeafs(l: List<PortalOnLevel>, p: PortalOnLevel): Iterable<PortalOnLevel> {
+    fun recursiveLeafs(l: List<PortalOnLevel>): Iterable<PortalOnLevel> {
         if (l.size > 250) return emptyList() // IKR
-        return (connectionsCache[p.portal] ?: emptyMap())
+        return (connectionsCache[l.last().portal] ?: emptyMap())
             .values
             .asSequence()
             .filter { testEverySecondIsPortal(l, it.portal2) { t -> t.portal } }
-            .filter { (it.portal2.code != "AA" && it.portal2.code != "ZZ") || p.level == 0 }
-            .map { PortalOnLevel(it.portal2, p.level + it.levelChange) }
+            .filter { (it.portal2.code != "AA" && it.portal2.code != "ZZ") || l.last().level == 0 }
+            .map { PortalOnLevel(it.portal2, l.last().level + it.levelChange) }
             .filter { it.level <= 0 }
             .toList()
     }
@@ -129,8 +129,8 @@ class Donut(val maze: Maze) {
                     .also { if (logging) logWithTime("Calculating $it") }
                     .sumBy(ConnectionOnLevel::distance)
             },
-            waysOutOp = { l, p ->
-                recursiveLeafs(l, p)
+            waysOutOp = { l ->
+                recursiveLeafs(l)
             }
         )
 
@@ -211,8 +211,8 @@ private fun findConnections(maze: Maze, portals: Set<Portal>, logging: Boolean =
         .mapNotNull { (start, end) ->
             if (logging) logWithTime("Testing $start->$end")
 
-            val pathfinder = BasicPathfinder<Location>(logging) { l, p ->
-                Direction.values().map { p + it }.filter { maze[it] == '.' }
+            val pathfinder = BasicPathfinder<Location>(logging) { l ->
+                Direction.values().map { l.last() + it }.filter { maze[it] == '.' }
             }
 
             val shortestPath = if (start.code == end.code) listOf(start, end)

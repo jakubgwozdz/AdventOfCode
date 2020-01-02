@@ -41,9 +41,9 @@ data class Maze(val input: List<String>) {
         if (what.y in this.input.indices && what.x in this.input[what.y].indices) this.input[what.y][what.x] else null
 
     fun dist(s: Location, e: Location, testOp: (Char?) -> Boolean = { it == '.' }): Int? {
-        return BasicPathfinder<Location> { l, t ->
+        return BasicPathfinder<Location> { l ->
             Direction.values()
-                .map { t + it }
+                .map { l.last() + it }
                 .filter { t1 -> t1 == e || testOp(this[t1]) }
         }.findShortest(s, e)
             ?.let { it.size - 1 }
