@@ -9,7 +9,7 @@ import java.util.*
  * R - state
  */
 interface Pathfinder<T : Any, R : Any> {
-    fun findShortest(start: T, end: T): R?
+    fun findShortest(startState: R, end: T): R?
 }
 
 open class DFSPathfinder<T : Any, D : Any, R : Any>(
@@ -21,9 +21,9 @@ open class DFSPathfinder<T : Any, D : Any, R : Any>(
     val comparator: Comparator<R> = distanceOp?.let { compareBy(it) } ?: error("Requires distanceOp or comparator"),
     val nextRoom: (R, D) -> T,
     val waysOutOp: (R, T) -> Iterable<D>
-) : Pathfinder<T, R> {
+)  {
 
-    override fun findShortest(start: T, end: T): R? {
+    fun findShortest(start: T, end: T): R? {
         return findShortestProcess(start, end, initialStateOp())
     }
 
@@ -45,38 +45,36 @@ open class DFSPathfinder<T : Any, D : Any, R : Any>(
 open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
     val logging: Boolean = false,
     val loggingFound: Boolean = false,
-    val initialStateOp: () -> R,
     val adderOp: (R, T) -> R,
     val distanceOp: ((R) -> I),
     val meaningfulOp: (R, I) -> Boolean = { _, _ -> true },
     val priority: Comparator<Pair<R, I>> = compareBy { it.second },
     val waysOutOp: (R) -> Iterable<T>
+//) {
 ) : Pathfinder<T, R> {
 
-    override fun findShortest(start: T, end: T): R? = findShortest(start) { _, t -> t == end }
+   override fun findShortest(startState: R, end: T): R? = findShortest(startState) { _, t -> t == end }
 
-    fun findShortest(start: T, endOp: (R, T) -> Boolean): R? {
-        add(start, initialStateOp())
+    fun findShortest(startState: R, endOp: (R, T) -> Boolean): R? {
+        add(startState)
         while (toVisit.isNotEmpty()) {
             val state = pick()
             waysOutOp(state)
                 .also { if (logging) logWithTime("WaysOut for $state: $it") }
                 .forEach { next ->
                     if (endOp(state, next)) {
-                        done(next, state)
+                        done(adderOp(state, next))
                     } else {
-                        add(next, state)
+                        add(adderOp(state, next))
                     }
                 }
 
         }
-        if (logging) logWithTime("best from $start is $currentBest")
 
         return currentBest?.first
     }
 
-    private fun add(elem: T, prevState: R) {
-        val nextState = adderOp(prevState, elem)
+    private fun add(nextState: R) {
         val distance = distanceOp(nextState)
         if (!meaningfulOp(nextState, distance)) {
             if (logging) logWithTime("skipping $nextState with distance $distance, it's not meaningful")
@@ -86,13 +84,11 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
         if (c == null || c.second > distance) {
             val new = nextState to distance
             toVisit.offer(new)
-//            toVisit.add(toVisit.indexOfLast { priority.compare(it, new) < 0 } + 1, new)
             if (logging) logWithTime("adding $nextState with distance $distance")
         } else if (logging) logWithTime("skipping $nextState with distance $distance, we got better result already")
     }
 
-    private fun done(elem: T, prevState: R) {
-        val nextState = adderOp(prevState, elem)
+    private fun done(nextState: R) {
         val distance = distanceOp(nextState)
         val c = currentBest
         if (c == null || c.second > distance) {
@@ -102,7 +98,7 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
     }
 
     private fun pick(): R {
-        val (r,i) = toVisit.poll()
+        val (r, i) = toVisit.poll()
 //        if (logging) logWithTime("removing $closest, left $toVisit")
         return r
     }
@@ -115,13 +111,11 @@ open class BFSPathfinder<T : Any, R : Any, I : Comparable<I>>(
 
 class BasicPathfinder<T : Comparable<T>>(
     logging: Boolean = false,
-    initialStateOp: () -> List<T> = { emptyList() },
     adderOp: (List<T>, T) -> List<T> = { l, t -> l + t },
     distanceOp: ((List<T>) -> Int) = { l -> l.size },
     waysOutOp: (List<T>) -> Iterable<T>
 ) : BFSPathfinder<T, List<T>, Int>(
     logging = logging,
-    initialStateOp = initialStateOp,
     adderOp = adderOp,
     distanceOp = distanceOp,
     waysOutOp = { l -> waysOutOp(l).filter { it !in l } }

@@ -52,16 +52,16 @@ class Vault(val maze: Maze) {
 
         val cache = keys.mapValues { mutableListOf<Pair<Set<Char>, Int>>() }
 
-        return BFSPathfinder(
+        val start1 = Segment('0', '0', 0)
+        return BFSPathfinder<Segment<Char>, SearchState<Char>, Int>(
 //            logging = true,
             loggingFound = true,
-            initialStateOp = { SearchState(emptyList()) },
             adderOp = { l, t -> l + t },
             distanceOp = SearchState<Char>::distance,
             meaningfulOp = { l, d -> worthChecking(l, d, cache) },
             priority = compareBy { it.first.distance },
             waysOutOp = this::waysOut
-        ).findShortest(Segment('0', '0', 0), this::found)!!
+        ).findShortest(SearchState<Char>(emptyList())+start1, this::found)!!
             .also { logWithTime(it) }
             .distance
     }
@@ -116,7 +116,7 @@ class Vault(val maze: Maze) {
                     allPaths[l.last()]!!.keys
                         .filter { t1 -> t1 == e || t1.toLowerCase() in ownedKeys }
                 }
-                    .findShortest(s, e)
+                    .findShortest(listOf(s), e)
                     ?.let(this@Vault::directDistance)
                     ?: -1
             }
