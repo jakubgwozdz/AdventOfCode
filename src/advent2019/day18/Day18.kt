@@ -52,38 +52,38 @@ class Vault(val maze: Maze) {
 
         val cache = keys.mapValues { mutableListOf<Pair<Set<Char>, Int>>() }
 
-        val start1 = Segment('0', '0', 0)
-        return BFSPathfinder<Segment<Char>, SearchState<Char>, Int>(
+        return BFSPathfinder<Segment, SearchState, Int>(
 //            logging = true,
             loggingFound = true,
             adderOp = { l, t -> l + t },
-            distanceOp = SearchState<Char>::distance,
+            distanceOp = SearchState::distance,
             meaningfulOp = { l, d -> worthChecking(l, d, cache) },
             priority = compareBy { it.first.distance },
             waysOutOp = this::waysOut
         )
-            .findShortest(SearchState<Char>(emptyList())+start1) { pathsSoFar ->
-                (pathsSoFar.ownedKeys).containsAll(this.keys.keys)
-            }!!
+            .findShortest(
+                SearchState(start.mapValues { (r, _) -> listOf(Segment(r, r, r, 0)) })
+            ) { pathsSoFar -> (pathsSoFar.ownedKeys).containsAll(this.keys.keys) }!!
             .also { logWithTime(it) }
             .distance
     }
 
     private fun worthChecking(
-        pathsSoFar: SearchState<Char>,
+        pathsSoFar: SearchState,
         distance: Int,
         cache: Map<Char, MutableList<Pair<Set<Char>, Int>>>
     ): Boolean {
-        val stops = pathsSoFar.stops
-        if (stops.isEmpty()) return true
-        val last = stops.last()
+        val stops = pathsSoFar.lastMove
+        if (pathsSoFar.paths.any { it.value.size < 2 }) return true
+        val last = stops.single().e
         val ownedKeys = pathsSoFar.ownedKeys
         val checkedPathsHere = cache[last] ?: error("unknown key '$last'")
-        val hasBetterCandidate = checkedPathsHere.any { (keys, d) ->
+        val betterCandidate = checkedPathsHere.firstOrNull { (keys, d) ->
             keys.size >= ownedKeys.size && keys.containsAll(ownedKeys) && d <= distance
         }
         return when {
-            hasBetterCandidate -> {
+            betterCandidate != null -> {
+//                logWithTime("$pathsSoFar not worth checking because of $betterCandidate")
                 false
             }
             else -> {
@@ -94,43 +94,46 @@ class Vault(val maze: Maze) {
 
     }
 
-    var test = 2500
-
-    private fun waysOut(
-        pathsSoFar: SearchState<Char>
-    ): List<Segment<Char>> {
+    private fun waysOut(pathsSoFar: SearchState): List<Segment> {
         val ownedKeys = pathsSoFar.ownedKeys
-        return keys.keys
+        val keysOfInterest = keys.keys
             .filter { it !in ownedKeys }
-            .mapNotNull { distanceBetweenPoints(pathsSoFar.list.last().e, it, ownedKeys) }
+        return start.keys.flatMap { robot ->
+            keysOfInterest
+                .mapNotNull { distanceBetweenPoints(robot, pathsSoFar.paths[robot]!!.last().e, it, ownedKeys) }
+        }
     }
 
-    inner class CalculatedSegments {
-        val cache: MutableMap<Triple<Char, Char, Set<Char>>, Int> = mutableMapOf()
+    data class CacheKey(val r: Char, val s: Char, val e: Char, val ownedKeys: Set<Char>)
 
-        fun compute(s: Char, e: Char, ownedKeys: Set<Char>): Segment<Char>? = when {
-            s == e -> Segment(s, e, 0)
-            s > e -> compute(e, s, ownedKeys)?.let { Segment(it.e, it.s, it.dist) }
-            else -> cache.computeIfAbsent(Triple(s, e, ownedKeys)) {
+    inner class CalculatedSegments {
+
+        val cache: MutableMap<CacheKey, Int> = mutableMapOf()
+
+        fun compute(r: Char, s: Char, e: Char, ownedKeys: Set<Char>): Segment? = when {
+            s == e -> Segment(r, s, e, 0)
+            s > e -> compute(r, e, s, ownedKeys)?.let { Segment(it.robot, it.e, it.s, it.dist) }
+            else -> cache.computeIfAbsent(CacheKey(r, s, e, ownedKeys)) { k ->
                 BasicPathfinder<Char>(distanceOp = this@Vault::directDistance) { l ->
                     allPaths[l.last()]!!.keys
-                        .filter { t1 -> t1 == e || t1.toLowerCase() in ownedKeys }
+                        .filter { it == k.e || it.toLowerCase() in ownedKeys }
                 }
-                    .findShortest(listOf(s)) { l -> l.lastOrNull() == e }
+                    .findShortest(listOf(k.s)) { it.lastOrNull() == k.e }
                     ?.let(this@Vault::directDistance)
                     ?: -1
             }
-                .let { if (it >= 0) Segment(s, e, it) else null }
+                .let { if (it >= 0) Segment(r, s, e, it) else null }
         }
     }
 
     val calculatedSegments = CalculatedSegments()
 
     private fun distanceBetweenPoints(
+        robot: Char,
         prevStep: Char,
         nextStep: Char,
         ownedKeys: Set<Char>
-    ) = calculatedSegments.compute(prevStep, nextStep, ownedKeys)
+    ) = calculatedSegments.compute(robot, prevStep, nextStep, ownedKeys)
 
     private val distanceCache = mutableMapOf<List<Char>, Int>()
 
@@ -142,25 +145,28 @@ class Vault(val maze: Maze) {
     }
 }
 
-data class SearchState<T : Comparable<T>>(val list: List<Segment<T>>) {
+data class SearchState(val paths: Map<Char, List<Segment>>, val lastMove: List<Segment>) {
+    constructor(paths: Map<Char, List<Segment>>) : this(paths, emptyList())
 
-    operator fun plus(t: Segment<T>): SearchState<T> = SearchState(list + t)
+    operator fun plus(t: Segment): SearchState =
+        SearchState(paths.mapValues { (robot, l) -> if (robot == t.robot) l + t else l }, listOf(t))
 
     override fun toString(): String = "$stops"
 
-    val stops = list.drop(1).map { p -> p.e }
+    val stops = paths.mapValues { it.value.drop(1).map { p -> p.e } }
 
-    val ownedKeys = stops.toSortedSet()
+    val ownedKeys = stops.values.flatten().toSortedSet()
 
-    val distance = list.sumBy { it.dist }
+    val distance = paths.values.map { l -> l.sumBy { it.dist } }.sum()
 }
 
 
-data class Segment<T : Comparable<T>>(val s: T, val e: T, val dist: Int) : Comparable<Segment<T>> {
+data class Segment(val robot: Char, val s: Char, val e: Char, val dist: Int) : Comparable<Segment> {
 
-    override fun compareTo(other: Segment<T>): Int = compareValuesBy(this, other, { it.dist }, { it.s }, { it.e })
+    override fun compareTo(other: Segment): Int =
+        compareValuesBy(this, other, { it.robot }, { it.dist }, { it.s }, { it.e })
 
-    override fun toString() = "$s->$e:$dist"
+    override fun toString() = "$robot:$s->$e:$dist"
 
 }
 
@@ -168,6 +174,8 @@ fun main() {
     val input = readAllLines("data/input-2019-18.txt")
     shortest(input)
         .also { logWithTime("part 1: $it") }
+    shortest(split(input))
+        .also { logWithTime("part 2: $it") }
 }
 
 fun split(input: List<String>): List<String> {
