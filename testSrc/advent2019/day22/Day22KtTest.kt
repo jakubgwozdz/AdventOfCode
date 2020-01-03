@@ -53,7 +53,7 @@ deal into new stack""".lines()
     }
 
     private fun deal(i: Int, input: List<String>, times: Int = 1): String {
-        return Deck(input, i.toLong(), times.toLong()).apply {  }.let { deck ->
+        return Deck(i.toLong(), input, times.toLong()).apply {  }.let { deck ->
             LongArray(deck.deckSize.toInt()).apply {
                 (0 until deck.deckSize).map { this[deck.find(it).toInt()] = it }
             }
@@ -127,7 +127,7 @@ cut -1""".lines()
         expect(8775L) {
             val input = readAllLines("data/input-2019-22.txt")
 
-            Deck(input, 10007)
+            Deck(10007, input)
                 .find(2019L)
 
         }
