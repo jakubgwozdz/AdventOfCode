@@ -152,4 +152,30 @@ cut -1""".lines()
         }
     }
 
+    @Test
+    fun linear() {
+        val l = LinearOp(1000)
+        val g = LinearOp(10,5, 1000)
+        val f = LinearOp(10,0, 1000)
+
+        println("$l x $g = ${l.then(g)}")
+        println("$l x $f = ${l.then(f)}")
+
+        println("$g x $l = ${g.then(l)}")
+        println("$f x $l = ${f.then(l)}")
+
+        println("$g x $f = ${g.then(f)}")
+        println("$f x $g = ${f.then(g)}")
+
+        println("$l o $g = ${l.after(g)}")
+        println("$l o $f = ${l.after(f)}")
+
+        println("$g o $l = ${g.after(l)}")
+        println("$f o $l = ${f.after(l)}")
+
+        println("$g o $f = ${g.after(f)}")
+        println("$f o $g = ${f.after(g)}")
+
+    }
+
 }

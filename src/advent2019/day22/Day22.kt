@@ -7,27 +7,37 @@ import java.math.BigInteger
 internal val Int.bi get() = toBigInteger()
 internal val Long.bi get() = toBigInteger()
 
-data class LinearOp(val a: BigInteger = 1.bi, val b: BigInteger = 0.bi, val deckSize: BigInteger) {
+data class LinearOp(val a: BigInteger, val b: BigInteger, val deckSize: BigInteger) {
+
+    constructor(a:Long, b:Long, deckSize:Long): this(a.bi, b.bi, deckSize.bi)
+    constructor(deckSize:BigInteger): this(1.bi, 0.bi, deckSize)
+    constructor(deckSize:Long): this(1.bi, 0.bi, deckSize.bi)
 
     fun normalize() = LinearOp((a + deckSize) % deckSize, (b + deckSize) % deckSize, deckSize)
 
-    fun compose(other: LinearOp) = LinearOp(a * other.a, b * other.a + other.b, deckSize)
+    fun then(other: LinearOp) = LinearOp(a * other.a, b * other.a + other.b, deckSize)
+    fun after(other: LinearOp) = LinearOp(a * other.a, b + a * other.b, deckSize)
 
-    fun apply(other: BigInteger) = (a * other + b) % deckSize
+    fun apply(other: Long) = ((a * other.bi + b) % deckSize).longValueExact()
 
     fun repeat(times: Long): LinearOp {
         var powered = this
         val biTimes = times.bi
         val bitLength = biTimes.bitLength()
         val powers = (1..bitLength)
-            .map { (it to powered).also { powered = (powered.compose(powered)).normalize() } }
+            .map { (it to powered).also { powered = (powered.then(powered)).normalize() } }
             .toMap()
 
         return (1..bitLength).filter { biTimes.testBit(it - 1) }
             .map { powers[it] ?: error("won't happen") }
             .asReversed()
-            .fold(LinearOp(1.bi, 0.bi, deckSize)) { a, e -> a.compose(e) }
+            .fold(LinearOp(deckSize)) { a, e -> a.then(e) }
     }
+
+    override fun toString(): String {
+        return "(a=$a, b=$b)"
+    }
+
 }
 
 interface ShuffleOp {
@@ -39,7 +49,7 @@ val dealIncRegex = Regex("deal with increment (-?\\d+)")
 val newStackRegex = Regex("deal into new stack")
 val cutRegex = Regex("cut (-?\\d+)")
 
-fun parse(input: List<String>, deckSize: Long): List<ShuffleOp> {
+fun parse(input: List<String>): List<ShuffleOp> {
     return input.map {
         dealIncRegex.matchEntire(it)?.destructured?.run { IncrementOp(component1().toLong()) }
             ?: newStackRegex.matchEntire(it)?.destructured?.run { NewStackOp() }
@@ -50,57 +60,41 @@ fun parse(input: List<String>, deckSize: Long): List<ShuffleOp> {
 
 class NewStackOp() : ShuffleOp {
 
-    override fun toLinearOp(deckSize: Long) = LinearOp((-1).bi, (-1).bi, deckSize.bi)
+    override fun toLinearOp(deckSize: Long) = LinearOp((-1), (-1), deckSize)
 
-    override fun toInverseOp(deckSize: Long) = LinearOp((-1).bi, (-1).bi, deckSize.bi)
+    override fun toInverseOp(deckSize: Long) = LinearOp((-1), (-1), deckSize)
 
 }
 
 class CutOp(private val cutPos: Long) : ShuffleOp {
 
-    override fun toLinearOp(deckSize: Long) = LinearOp(1.bi, -cutPos.bi, deckSize.bi)
+    override fun toLinearOp(deckSize: Long) = LinearOp(1, -cutPos, deckSize)
 
-    override fun toInverseOp(deckSize: Long) = LinearOp(1.bi, cutPos.bi, deckSize.bi)
+    override fun toInverseOp(deckSize: Long) = LinearOp(1, cutPos, deckSize)
 
 }
 
 class IncrementOp(private val increment: Long) : ShuffleOp {
 
-    override fun toLinearOp(deckSize: Long) = LinearOp(increment.bi, 0.bi, deckSize.bi)
+    override fun toLinearOp(deckSize: Long) = LinearOp(increment, 0, deckSize)
 
-    override fun toInverseOp(deckSize: Long) = LinearOp(increment.bi.modInverse(deckSize.bi), 0.bi, deckSize.bi)
+    override fun toInverseOp(deckSize: Long) = LinearOp(increment.bi.modInverse(deckSize.bi).longValueExact(), 0, deckSize)
 
 }
 
 class Deck(val deckSize: Long, input: List<String>, val times: Long = 1) {
 
-    private val shuffleOps: List<ShuffleOp> = parse(input, deckSize)
+    private val shuffleOps: List<ShuffleOp> = parse(input)
 
-    fun find(card: Long): Long {
+    fun find(card: Long) = shuffleOps
+        .fold(LinearOp(deckSize)) { a, s -> (a.then(s.toLinearOp(deckSize))).normalize() }
+        .repeat(times)
+        .apply(card)
 
-        val biDeckSize = deckSize.bi
-
-        val ops = shuffleOps
-            .fold(LinearOp(1.bi, 0.bi, biDeckSize)) { a, s -> (a.compose(s.toLinearOp(deckSize))).normalize() }
-            .repeat(times)
-
-        val v = ops.apply(card.bi)
-        return v.longValueExact()
-
-    }
-
-    fun cardAt(pos: Long): Long {
-
-        val biDeckSize = deckSize.bi
-
-        val ops = shuffleOps
-            .asReversed()
-            .fold(LinearOp(1.bi, 0.bi, biDeckSize)) { a, s -> (a.compose(s.toInverseOp(deckSize))).normalize() }
-            .repeat(times)
-
-        val v = ops.apply(pos.bi)
-        return v.longValueExact()
-    }
+    fun cardAt(pos: Long) = shuffleOps
+        .asReversed()
+        .fold(LinearOp(deckSize)) { a, s -> (a.then(s.toInverseOp(deckSize))).normalize() }
+        .repeat(times).apply(pos)
 
 }
 
