@@ -10,7 +10,7 @@ internal val Long.bi get() = toBigInteger()
 data class LinearOp(val a: BigInteger = 1.bi, val b: BigInteger = 0.bi) {
 
     fun inRange(deckSize: BigInteger) = LinearOp((a + deckSize) % deckSize, (b + deckSize) % deckSize)
-    fun composeWith(other: LinearOp) = LinearOp(a * other.a, b * other.a + other.b)
+    operator fun times(other: LinearOp) = LinearOp(a * other.a, b * other.a + other.b)
 
 }
 
@@ -95,10 +95,22 @@ class Deck(val deckSize: Long, input: List<String>, val times: Long = 1) {
 
     fun cardAt(pos: Long): Long {
         val ops = shuffleOps.asReversed()
-            .fold(LinearOp()) { a, s -> a.composeWith(s.toInverseOp()).inRange(deckSize.bi) }
+            .fold(LinearOp()) { a, s -> (a * s.toInverseOp()).inRange(deckSize.bi) }
 
-        println(ops)
-        val v = (ops.a * pos.bi + ops.b) % deckSize.bi
+        var powered = ops
+        val biTimes = times.bi
+        val bitLength = biTimes.bitLength()
+        val powers = (1..bitLength)
+            .map { (it to powered).also { powered = (powered * powered).inRange(deckSize.bi) } }
+            .toMap()
+
+
+        val repeatedOps = (1..bitLength).filter { biTimes.testBit(it - 1) }
+            .map { powers[it]!! }
+            .asReversed()
+            .fold(LinearOp()) { a, e -> a * e }
+
+        val v = (repeatedOps.a * pos.bi + repeatedOps.b) % deckSize.bi
         return v.longValueExact()
     }
 }

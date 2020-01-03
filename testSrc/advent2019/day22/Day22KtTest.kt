@@ -1,7 +1,6 @@
 package advent2019.day22
 
 import advent2019.readAllLines
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import kotlin.test.expect
 
@@ -98,7 +97,6 @@ cut -1""".lines()
     }
 
     @Test
-    @Disabled
     fun repetitions() {
 
         (10..50).filter { it % 3 != 0 && it % 7 != 0 }.forEach { deckSize ->
@@ -129,6 +127,17 @@ cut -1""".lines()
 
             Deck(10007, input)
                 .find(2019L)
+
+        }
+    }
+
+    @Test
+    fun part2() {
+        expect(47141544607176L) {
+            val input = readAllLines("data/input-2019-22.txt")
+
+            Deck(119315717514047, input, 101741582076661)
+                .cardAt(2020)
 
         }
     }
