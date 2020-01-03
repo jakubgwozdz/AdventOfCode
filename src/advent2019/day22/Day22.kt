@@ -7,17 +7,32 @@ import java.math.BigInteger
 internal val Int.bi get() = toBigInteger()
 internal val Long.bi get() = toBigInteger()
 
-data class LinearOp(val a: BigInteger = 1.bi, val b: BigInteger = 0.bi) {
+data class LinearOp(val a: BigInteger = 1.bi, val b: BigInteger = 0.bi, val deckSize: BigInteger) {
 
-    fun inRange(deckSize: BigInteger) = LinearOp((a + deckSize) % deckSize, (b + deckSize) % deckSize)
-    operator fun times(other: LinearOp) = LinearOp(a * other.a, b * other.a + other.b)
+    fun normalize() = LinearOp((a + deckSize) % deckSize, (b + deckSize) % deckSize, deckSize)
 
+    fun compose(other: LinearOp) = LinearOp(a * other.a, b * other.a + other.b, deckSize)
+
+    fun apply(other: BigInteger) = (a * other + b) % deckSize
+
+    fun repeat(times: Long): LinearOp {
+        var powered = this
+        val biTimes = times.bi
+        val bitLength = biTimes.bitLength()
+        val powers = (1..bitLength)
+            .map { (it to powered).also { powered = (powered.compose(powered)).normalize() } }
+            .toMap()
+
+        return (1..bitLength).filter { biTimes.testBit(it - 1) }
+            .map { powers[it] ?: error("won't happen") }
+            .asReversed()
+            .fold(LinearOp(1.bi, 0.bi, deckSize)) { a, e -> a.compose(e) }
+    }
 }
 
 interface ShuffleOp {
-    fun move(from: Long): Long
-    fun toLinearOp(): LinearOp
-    fun toInverseOp(): LinearOp
+    fun toLinearOp(deckSize: Long): LinearOp
+    fun toInverseOp(deckSize: Long): LinearOp
 }
 
 val dealIncRegex = Regex("deal with increment (-?\\d+)")
@@ -26,93 +41,67 @@ val cutRegex = Regex("cut (-?\\d+)")
 
 fun parse(input: List<String>, deckSize: Long): List<ShuffleOp> {
     return input.map {
-        dealIncRegex.matchEntire(it)?.destructured?.run { IncrementOp(deckSize, component1().toLong()) }
-            ?: newStackRegex.matchEntire(it)?.destructured?.run { NewStackOp(deckSize) }
-            ?: cutRegex.matchEntire(it)?.destructured?.run { CutOp(deckSize, component1().toLong()) }
+        dealIncRegex.matchEntire(it)?.destructured?.run { IncrementOp(component1().toLong()) }
+            ?: newStackRegex.matchEntire(it)?.destructured?.run { NewStackOp() }
+            ?: cutRegex.matchEntire(it)?.destructured?.run { CutOp(component1().toLong()) }
             ?: error("'$it' is not proper op")
     }
 }
 
-class NewStackOp(val deckSize: Long) : ShuffleOp {
+class NewStackOp() : ShuffleOp {
 
-    override fun move(from: Long): Long {
-        return (deckSize - from - 1)
-//                .also { println("$this: $from -> $it")  }
-    }
+    override fun toLinearOp(deckSize: Long) = LinearOp((-1).bi, (-1).bi, deckSize.bi)
 
-    override fun toLinearOp(): LinearOp {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun toInverseOp(deckSize: Long) = LinearOp((-1).bi, (-1).bi, deckSize.bi)
 
-    override fun toInverseOp(): LinearOp {
-        return LinearOp(-1.bi, -1.bi)
-    }
-
-    override fun toString() = "NewStackOp()"
 }
 
-class CutOp(val deckSize: Long, val cutPos: Long) : ShuffleOp {
-    private val c = if (cutPos < 0) cutPos + deckSize else cutPos
-    override fun move(from: Long): Long {
-        return ((deckSize * 2 - c + from) % deckSize)
-    }
+class CutOp(private val cutPos: Long) : ShuffleOp {
 
-    override fun toLinearOp(): LinearOp {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun toLinearOp(deckSize: Long) = LinearOp(1.bi, -cutPos.bi, deckSize.bi)
 
-    override fun toInverseOp(): LinearOp {
-        return LinearOp(1.bi, cutPos.bi)
-    }
+    override fun toInverseOp(deckSize: Long) = LinearOp(1.bi, cutPos.bi, deckSize.bi)
 
-    override fun toString() = "CutOp($cutPos)"
 }
 
-class IncrementOp(val deckSize: Long, val increment: Long) : ShuffleOp {
+class IncrementOp(private val increment: Long) : ShuffleOp {
 
-    override fun move(from: Long): Long {
-        return ((from * increment) % deckSize)
-    }
+    override fun toLinearOp(deckSize: Long) = LinearOp(increment.bi, 0.bi, deckSize.bi)
 
-    override fun toLinearOp(): LinearOp {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun toInverseOp(deckSize: Long) = LinearOp(increment.bi.modInverse(deckSize.bi), 0.bi, deckSize.bi)
 
-    override fun toInverseOp(): LinearOp {
-        return LinearOp(increment.toBigInteger().modInverse(deckSize.bi), 0.bi)
-    }
-
-    override fun toString() = "IncrementOp(increment=$increment)"
 }
 
 class Deck(val deckSize: Long, input: List<String>, val times: Long = 1) {
 
-    val shuffleOps: List<ShuffleOp> = parse(input, deckSize)
+    private val shuffleOps: List<ShuffleOp> = parse(input, deckSize)
 
     fun find(card: Long): Long {
-        return shuffleOps.fold(card) { acc, op -> op.move(acc) }
+
+        val biDeckSize = deckSize.bi
+
+        val ops = shuffleOps
+            .fold(LinearOp(1.bi, 0.bi, biDeckSize)) { a, s -> (a.compose(s.toLinearOp(deckSize))).normalize() }
+            .repeat(times)
+
+        val v = ops.apply(card.bi)
+        return v.longValueExact()
+
     }
 
     fun cardAt(pos: Long): Long {
-        val ops = shuffleOps.asReversed()
-            .fold(LinearOp()) { a, s -> (a * s.toInverseOp()).inRange(deckSize.bi) }
 
-        var powered = ops
-        val biTimes = times.bi
-        val bitLength = biTimes.bitLength()
-        val powers = (1..bitLength)
-            .map { (it to powered).also { powered = (powered * powered).inRange(deckSize.bi) } }
-            .toMap()
+        val biDeckSize = deckSize.bi
 
-
-        val repeatedOps = (1..bitLength).filter { biTimes.testBit(it - 1) }
-            .map { powers[it]!! }
+        val ops = shuffleOps
             .asReversed()
-            .fold(LinearOp()) { a, e -> a * e }
+            .fold(LinearOp(1.bi, 0.bi, biDeckSize)) { a, s -> (a.compose(s.toInverseOp(deckSize))).normalize() }
+            .repeat(times)
 
-        val v = (repeatedOps.a * pos.bi + repeatedOps.b) % deckSize.bi
+        val v = ops.apply(pos.bi)
         return v.longValueExact()
     }
+
 }
 
 fun main() {

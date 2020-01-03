@@ -97,6 +97,16 @@ cut -1""".lines()
     }
 
     @Test
+    fun test4_twice() {
+        expect("6 5 4 3 2 1 0 9 8 7") { deal(10, input4 + input4) }
+    }
+
+    @Test
+    fun test4_repeated() {
+        expect("6 5 4 3 2 1 0 9 8 7") { deal(10, input4, 2) }
+    }
+
+    @Test
     fun repetitions() {
 
         (10..50).filter { it % 3 != 0 && it % 7 != 0 }.forEach { deckSize ->
