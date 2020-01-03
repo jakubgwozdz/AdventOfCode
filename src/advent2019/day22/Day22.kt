@@ -3,30 +3,24 @@ package advent2019.day22
 import advent2019.logWithTime
 import advent2019.modinv
 import advent2019.readAllLines
-import java.math.BigInteger
 
-internal val Int.bi get() = toBigInteger()
 internal val Long.bi get() = toBigInteger()
 
-data class LinearOp(val a: BigInteger, val b: BigInteger, val deckSize: BigInteger) {
+data class LinearOp(val deckSize: Long, val a: Long = 1, val b: Long = 0) {
 
-    constructor(a:Long, b:Long, deckSize:Long): this(a.bi, b.bi, deckSize.bi)
-    constructor(deckSize:BigInteger): this(1.bi, 0.bi, deckSize)
-    constructor(deckSize:Long): this(1.bi, 0.bi, deckSize.bi)
+    infix fun Long.modmul(other: Long) = ((bi * other.bi + deckSize.bi) % deckSize.bi).longValueExact()
 
-    fun normalize() = LinearOp((a + deckSize) % deckSize, (b + deckSize) % deckSize, deckSize)
+    fun then(other: LinearOp) = LinearOp(deckSize, a modmul other.a, (other.a modmul b) + other.b)
+    fun after(other: LinearOp) = LinearOp(deckSize, a modmul other.a, (a modmul other.b) + b)
 
-    fun then(other: LinearOp) = LinearOp(a * other.a, b * other.a + other.b, deckSize)
-    fun after(other: LinearOp) = LinearOp(a * other.a, b + a * other.b, deckSize)
-
-    fun apply(other: Long) = ((a * other.bi + b) % deckSize).longValueExact()
+    fun apply(other: Long) = ((a modmul other) + b + deckSize) % deckSize
 
     fun repeat(times: Long): LinearOp {
         var powered = this
         val biTimes = times.bi
         val bitLength = biTimes.bitLength()
         val powers = (1..bitLength)
-            .map { (it to powered).also { powered = (powered.then(powered)).normalize() } }
+            .map { (it to powered).also { powered = (powered.then(powered)) } }
             .toMap()
 
         return (1..bitLength).filter { biTimes.testBit(it - 1) }
@@ -61,26 +55,25 @@ fun parse(input: List<String>): List<ShuffleOp> {
 
 class NewStackOp() : ShuffleOp {
 
-    override fun toLinearOp(deckSize: Long) = LinearOp((-1), (-1), deckSize)
+    override fun toLinearOp(deckSize: Long) = LinearOp(deckSize, (-1), (-1))
 
-    override fun toInverseOp(deckSize: Long) = LinearOp((-1), (-1), deckSize)
+    override fun toInverseOp(deckSize: Long) = LinearOp(deckSize, (-1), (-1))
 
 }
 
 class CutOp(private val cutPos: Long) : ShuffleOp {
 
-    override fun toLinearOp(deckSize: Long) = LinearOp(1, -cutPos, deckSize)
+    override fun toLinearOp(deckSize: Long) = LinearOp(deckSize, 1, -cutPos)
 
-    override fun toInverseOp(deckSize: Long) = LinearOp(1, cutPos, deckSize)
+    override fun toInverseOp(deckSize: Long) = LinearOp(deckSize, 1, cutPos)
 
 }
 
 class IncrementOp(private val increment: Long) : ShuffleOp {
 
-    override fun toLinearOp(deckSize: Long) = LinearOp(increment, 0, deckSize)
+    override fun toLinearOp(deckSize: Long) = LinearOp(deckSize, increment, 0)
 
-    override fun toInverseOp(deckSize: Long) = LinearOp(increment.modinv(deckSize), 0, deckSize)
-//    override fun toInverseOp(deckSize: Long) = LinearOp(increment.bi.modInverse(deckSize.bi).longValueExact(), 0, deckSize)
+    override fun toInverseOp(deckSize: Long) = LinearOp(deckSize, increment modinv deckSize, 0)
 
 }
 
@@ -89,13 +82,13 @@ class Deck(val deckSize: Long, input: List<String>, val times: Long = 1) {
     private val shuffleOps: List<ShuffleOp> = parse(input)
 
     fun find(card: Long) = shuffleOps
-        .fold(LinearOp(deckSize)) { a, s -> (s.toLinearOp(deckSize).after(a)).normalize() }
+        .fold(LinearOp(deckSize)) { a, s -> (s.toLinearOp(deckSize).after(a)) }
         .repeat(times)
         .apply(card)
 
     fun cardAt(pos: Long) = shuffleOps
         .asReversed()
-        .fold(LinearOp(deckSize)) { a, s -> (s.toInverseOp(deckSize).after(a)).normalize() }
+        .fold(LinearOp(deckSize)) { a, s -> (s.toInverseOp(deckSize).after(a)) }
         .repeat(times).apply(pos)
 
 }

@@ -60,8 +60,7 @@ fun lcm(a: Long, b: Long): Long {
     return a * b / gcd(a, b)
 }
 
-
-fun Long.modinv(m: Long): Long {
+infix fun Long.modinv(m: Long): Long {
     var a: Long = this
     var b: Long = m
     var aa: Long = 1

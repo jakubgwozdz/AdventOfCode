@@ -42,9 +42,11 @@ internal class Day22KtTest {
     }
 
 
-    val input1 = """deal with increment 7
-deal into new stack
-deal into new stack""".lines()
+    val input1 = """
+        deal with increment 7
+        deal into new stack
+        deal into new stack
+        """.trimIndent().lines()
 
     @Test
     fun test1() {
@@ -52,7 +54,7 @@ deal into new stack""".lines()
     }
 
     private fun deal(i: Int, input: List<String>, times: Int = 1): String {
-        return Deck(i.toLong(), input, times.toLong()).apply {  }.let { deck ->
+        return Deck(i.toLong(), input, times.toLong()).apply { }.let { deck ->
             LongArray(deck.deckSize.toInt()).apply {
                 (0 until deck.deckSize).map { this[deck.find(it).toInt()] = it }
             }
@@ -60,34 +62,40 @@ deal into new stack""".lines()
             .joinToString(" ")
     }
 
-    val input2 = """cut 6
-deal with increment 7
-deal into new stack""".lines()
+    val input2 = """
+        cut 6
+        deal with increment 7
+        deal into new stack
+        """.trimIndent().lines()
 
     @Test
     fun test2() {
         expect("3 0 7 4 1 8 5 2 9 6") { deal(10, input2) }
     }
 
-    val input3 = """deal with increment 7
-deal with increment 9
-cut -2""".lines()
+    val input3 = """
+        deal with increment 7
+        deal with increment 9
+        cut -2
+        """.trimIndent().lines()
 
     @Test
     fun test3() {
         expect("6 3 0 7 4 1 8 5 2 9") { deal(10, input3) }
     }
 
-    val input4 = """deal into new stack
-cut -2
-deal with increment 7
-cut 8
-cut -4
-deal with increment 7
-cut 3
-deal with increment 9
-deal with increment 3
-cut -1""".lines()
+    val input4 = """
+        deal into new stack
+        cut -2
+        deal with increment 7
+        cut 8
+        cut -4
+        deal with increment 7
+        cut 3
+        deal with increment 9
+        deal with increment 3
+        cut -1
+        """.trimIndent().lines()
 
     val input4a = input4.drop(1)
 
@@ -155,17 +163,17 @@ cut -1""".lines()
     @Test
     fun linear() {
         val l = LinearOp(1000)
-        val g = LinearOp(10,5, 1000)
-        val f = LinearOp(10,0, 1000)
+        val g = LinearOp(1000, 10, 5)
+        val f = LinearOp(1000, 10, 0)
 
-        println("$l x $g = ${l.then(g)}")
-        println("$l x $f = ${l.then(f)}")
+        println("$l ; $g = ${l.then(g)}")
+        println("$l ; $f = ${l.then(f)}")
 
-        println("$g x $l = ${g.then(l)}")
-        println("$f x $l = ${f.then(l)}")
+        println("$g ; $l = ${g.then(l)}")
+        println("$f ; $l = ${f.then(l)}")
 
-        println("$g x $f = ${g.then(f)}")
-        println("$f x $g = ${f.then(g)}")
+        println("$g ; $f = ${g.then(f)}")
+        println("$f ; $g = ${f.then(g)}")
 
         println("$l o $g = ${l.after(g)}")
         println("$l o $f = ${l.after(f)}")
