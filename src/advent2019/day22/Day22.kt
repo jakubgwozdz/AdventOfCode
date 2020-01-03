@@ -1,6 +1,7 @@
 package advent2019.day22
 
 import advent2019.logWithTime
+import advent2019.modinv
 import advent2019.readAllLines
 import java.math.BigInteger
 
@@ -78,7 +79,8 @@ class IncrementOp(private val increment: Long) : ShuffleOp {
 
     override fun toLinearOp(deckSize: Long) = LinearOp(increment, 0, deckSize)
 
-    override fun toInverseOp(deckSize: Long) = LinearOp(increment.bi.modInverse(deckSize.bi).longValueExact(), 0, deckSize)
+    override fun toInverseOp(deckSize: Long) = LinearOp(increment.modinv(deckSize), 0, deckSize)
+//    override fun toInverseOp(deckSize: Long) = LinearOp(increment.bi.modInverse(deckSize.bi).longValueExact(), 0, deckSize)
 
 }
 
@@ -87,13 +89,13 @@ class Deck(val deckSize: Long, input: List<String>, val times: Long = 1) {
     private val shuffleOps: List<ShuffleOp> = parse(input)
 
     fun find(card: Long) = shuffleOps
-        .fold(LinearOp(deckSize)) { a, s -> (a.then(s.toLinearOp(deckSize))).normalize() }
+        .fold(LinearOp(deckSize)) { a, s -> (s.toLinearOp(deckSize).after(a)).normalize() }
         .repeat(times)
         .apply(card)
 
     fun cardAt(pos: Long) = shuffleOps
         .asReversed()
-        .fold(LinearOp(deckSize)) { a, s -> (a.then(s.toInverseOp(deckSize))).normalize() }
+        .fold(LinearOp(deckSize)) { a, s -> (s.toInverseOp(deckSize).after(a)).normalize() }
         .repeat(times).apply(pos)
 
 }

@@ -60,33 +60,10 @@ fun lcm(a: Long, b: Long): Long {
     return a * b / gcd(a, b)
 }
 
-// taken from https://github.com/PetarV-/Algorithms/blob/master/Mathematical%20Algorithms/Extended%20Euclidean%20Algorithm.cpp
-fun egcd(a: Long, b: Long): Pair<Long, Pair<Long, Long>> {
-    var a: Long = a
-    var b: Long = b
-    var aa: Long = 1
-    var ab: Long = 0
-    var ba: Long = 0
-    var bb: Long = 1
-    while (true) {
-        val q: Long = a / b
-        if (a == b * q) return b to (ba to bb)
-        val tmp_a: Long = a
-        val tmp_aa: Long = aa
-        val tmp_ab: Long = ab
-        a = b
-        b = tmp_a - b * q
-        aa = ba
-        ab = bb
-        ba = tmp_aa - ba * q
-        bb = tmp_ab - bb * q
-    }
-}
 
-fun modinv(a: Long, b: Long): Long {
-    var a: Long = a
-    var b: Long = b
-    val b0: Long = b
+fun Long.modinv(m: Long): Long {
+    var a: Long = this
+    var b: Long = m
     var aa: Long = 1
     var ba: Long = 0
     while (true) {
@@ -95,14 +72,14 @@ fun modinv(a: Long, b: Long): Long {
             if (b != 1L) { // Modular inverse does not exist!
                 error("not exists")
             }
-            while (ba < 0) ba += b0
+            while (ba < 0) ba += m
             return ba
         }
-        val tmp_a: Long = a
-        val tmp_aa: Long = aa
+        val tmpA: Long = a
+        val tmpAa: Long = aa
         a = b
-        b = tmp_a - b * q
+        b = tmpA - b * q
         aa = ba
-        ba = tmp_aa - ba * q
+        ba = tmpAa - ba * q
     }
 }
